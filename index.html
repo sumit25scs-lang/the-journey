@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retenza - Student Dropout Risk Prediction System</title>
+  <meta name="description" content="AI-powered early warning platform that predicts student dropout risk using a real Random Forest model served by Python Flask." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: #818cf8;
+      --accent: #22d3ee; --accent2: #f472b6;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --bg: #0f0f1a; --surface: #16172b; --surface2: #1e2040; --surface3: #252750;
+      --border: rgba(255,255,255,0.08);
+      --text: #e2e8f0; --text-muted: #94a3b8; --text-faint: #475569;
+      --high-risk: #ef4444; --med-risk: #f59e0b; --low-risk: #10b981;
+      --radius: 14px; --shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --glow-primary: 0 0 40px rgba(99,102,241,0.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    body::before {
+      content: ''; position: fixed; top: -40%; left: -20%; width: 80vw; height: 80vh;
+      background: radial-gradient(ellipse, rgba(99,102,241,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0; animation: bgFloat 12s ease-in-out infinite alternate;
+    }
+    body::after {
+      content: ''; position: fixed; bottom: -30%; right: -10%; width: 60vw; height: 60vh;
+      background: radial-gradient(ellipse, rgba(34,211,238,0.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0; animation: bgFloat 16s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes bgFloat { from{transform:translate(0,0) scale(1)} to{transform:translate(40px,30px) scale(1.1)} }
+    .app-container { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; transition: transform 0.3s ease; }
+    .sidebar-logo { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+    .logo-badge { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: var(--glow-primary); }
+    .logo-text h1 { font-size: 17px; font-weight: 800; background: linear-gradient(135deg,#fff,var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.3px; }
+    .logo-text span { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .accuracy-badge { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--success); font-weight: 600; }
+    .py-badge { margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--primary-light); font-weight: 600; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.2px; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; margin-bottom: 2px; color: var(--text-muted); font-size: 14px; font-weight: 500; border: 1px solid transparent; user-select: none; }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(99,102,241,0.15); color: var(--primary-light); border-color: rgba(99,102,241,0.3); }
+    .nav-item i { width: 18px; text-align: center; font-size: 15px; }
+    .nav-badge { margin-left: auto; background: var(--primary); color: #fff; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .model-info-card { background: var(--surface2); border-radius: 10px; padding: 12px; font-size: 12px; }
+    .model-info-card .mi-label { color: var(--text-muted); margin-bottom: 4px; }
+    .model-info-card .mi-val { font-weight: 700; font-size: 18px; background: linear-gradient(135deg, var(--success), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .model-info-card .mi-sub { color: var(--text-faint); font-size: 10px; margin-top: 2px; }
+
+    /* MAIN */
+    .main-content { flex: 1; margin-left: 260px; padding: 32px; min-height: 100vh; }
+    .page-header { margin-bottom: 28px; }
+    .page-header h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: #fff; }
+    .page-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+    .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-faint); margin-bottom: 8px; }
+    .breadcrumb span { color: var(--primary-light); }
+
+    /* CARDS */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; transition: border-color 0.2s; }
+    .card:hover { border-color: rgba(99,102,241,0.3); }
+    .card-title { font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .card-title i { color: var(--primary-light); }
+
+    /* STATS */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; display: flex; align-items: center; gap: 16px; transition: all 0.25s ease; position: relative; overflow: hidden; }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent-color, var(--primary)); border-radius: var(--radius) var(--radius) 0 0; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: rgba(99,102,241,0.3); }
+    .stat-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-info .label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
+    .stat-info .value { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+    .stat-info .sublabel { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .chart-container { position: relative; height: 260px; }
+
+    /* FORM */
+    .form-section { margin-bottom: 28px; }
+    .form-section-title { font-size: 12px; font-weight: 700; color: var(--primary-light); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .form-group input, .form-group select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .form-group select option { background: var(--surface2); }
+    .form-hint { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s ease; border: none; text-decoration: none; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 25px rgba(99,102,241,0.55); }
+    .btn-success { background: linear-gradient(135deg, var(--success), #059669); color: #fff; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+    .btn-success:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,0.45); }
+    .btn-danger { background: linear-gradient(135deg, var(--danger), #dc2626); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary-light); }
+    .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+    .btn-lg { padding: 14px 32px; font-size: 16px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* RISK BADGE */
+    .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .risk-high { background: rgba(239,68,68,0.15); color: var(--high-risk); border: 1px solid rgba(239,68,68,0.3); }
+    .risk-medium { background: rgba(245,158,11,0.15); color: var(--med-risk); border: 1px solid rgba(245,158,11,0.3); }
+    .risk-low { background: rgba(16,185,129,0.15); color: var(--low-risk); border: 1px solid rgba(16,185,129,0.3); }
+
+    /* RESULT */
+    #result-container { display: none; }
+    .result-hero { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
+    .result-hero-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+    .result-student-info h3 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .result-student-info .sid { color: var(--text-muted); font-size: 13px; }
+    .result-score-ring { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .ring-wrapper { position: relative; width: 120px; height: 120px; }
+    .ring-wrapper svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 10; }
+    .ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1.2s ease; }
+    .ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+    .ring-center .score-num { font-size: 24px; font-weight: 900; line-height: 1; }
+    .ring-center .score-label { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+    .risk-level-label { font-size: 13px; font-weight: 700; }
+    .conf-badge { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    .progress-bar-wrap { background: var(--surface2); border-radius: 10px; height: 10px; overflow: hidden; margin: 10px 0; }
+    .progress-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+    .factors-list { display: flex; flex-direction: column; gap: 8px; }
+    .factor-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; border-left: 3px solid transparent; font-size: 13px; }
+    .factor-item.sev-high { border-left-color: var(--high-risk); }
+    .factor-item.sev-medium { border-left-color: var(--med-risk); }
+    .factor-item.sev-low { border-left-color: var(--low-risk); }
+    .factor-icon { font-size: 15px; } .factor-name { color: var(--text); font-weight: 500; flex: 1; }
+    .factor-sev { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 10px; }
+    .sev-badge-high { background: rgba(239,68,68,0.15); color: var(--high-risk); }
+    .sev-badge-medium { background: rgba(245,158,11,0.15); color: var(--med-risk); }
+    .sev-badge-low { background: rgba(16,185,129,0.15); color: var(--low-risk); }
+
+    .intervention-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 14px; margin-top: 4px; }
+    .intervention-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all 0.2s; }
+    .intervention-card:hover { border-color: rgba(99,102,241,0.4); transform: translateY(-2px); }
+    .int-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .int-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .int-dept { font-size: 13px; font-weight: 700; color: #fff; } .int-contact { font-size: 11px; color: var(--text-muted); }
+    .int-actions { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+    .int-actions li { margin-bottom: 3px; padding-left: 4px; }
+    .int-btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* BULK UPLOAD */
+    .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 50px 30px; text-align: center; cursor: pointer; transition: all 0.25s ease; background: var(--surface2); }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: rgba(99,102,241,0.05); }
+    .drop-zone i { font-size: 48px; color: var(--text-faint); margin-bottom: 14px; display: block; }
+    .drop-zone .dz-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .drop-zone .dz-sub { color: var(--text-muted); font-size: 13px; }
+    #file-input { display: none; }
+
+    /* TABLE */
+    .table-wrapper { overflow-x: auto; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--surface2); cursor: pointer; user-select: none; }
+    thead th:hover { color: var(--primary-light); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 11px 14px; color: var(--text); }
+    tbody tr:last-child { border-bottom: none; }
+
+    /* HISTORY */
+    .history-item { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--surface2); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 8px; transition: all 0.2s; cursor: pointer; }
+    .history-item:hover { border-color: rgba(99,102,241,0.3); }
+    .history-avatar { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .history-info { flex: 1; }
+    .history-info .hname { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .history-info .htime { font-size: 11px; color: var(--text-faint); }
+    .history-score { font-size: 18px; font-weight: 800; }
+
+    .search-bar { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; }
+    .search-bar i { color: var(--text-faint); }
+    .search-bar input { background: none; border: none; outline: none; color: var(--text); font-size: 14px; font-family: inherit; flex: 1; }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast-msg { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; animation: toastIn 0.3s ease; box-shadow: var(--shadow); }
+    .toast-msg.success { border-left: 3px solid var(--success); color: var(--success); }
+    .toast-msg.error   { border-left: 3px solid var(--danger);  color: var(--danger); }
+    .toast-msg.info    { border-left: 3px solid var(--primary); color: var(--primary-light); }
+    @keyframes toastIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* FEATURE BAR */
+    .feature-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; }
+    .feature-bar .fb-label { width: 200px; flex-shrink: 0; color: var(--text); font-size: 12px; }
+    .feature-bar .fb-track { flex: 1; background: var(--surface2); border-radius: 10px; height: 8px; overflow: hidden; }
+    .feature-bar .fb-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--primary), var(--accent)); }
+    .feature-bar .fb-pct { width: 42px; text-align: right; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+
+    /* SERVICE */
+    .service-card { display: flex; gap: 14px; padding: 14px; background: var(--surface2); border-radius: 10px; border: 1px solid var(--border); }
+    .service-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .service-info .si-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .service-info .si-email { font-size: 11px; color: var(--primary-light); }
+    .service-info .si-desc { font-size: 11px; color: var(--text-faint); margin-top: 3px; }
+
+    .page { display: none; } .page.active { display: block; }
+
+    .empty-state { text-align: center; padding: 48px; color: var(--text-faint); }
+    .empty-state i { font-size: 40px; margin-bottom: 12px; display: block; opacity: 0.4; }
+    .empty-state p { font-size: 14px; }
+
+    .grad-text { background: linear-gradient(135deg,var(--primary-light),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .flex { display:flex; } .items-center { align-items:center; } .gap-2 { gap:8px; } .gap-3 { gap:12px; }
+    .justify-between { justify-content:space-between; } .flex-wrap { flex-wrap:wrap; }
+    .mt-4 { margin-top:16px; } .mt-6 { margin-top:24px; } .mb-4 { margin-bottom:16px; }
+    .text-muted { color:var(--text-muted); } .text-xs { font-size:12px; }
+
+    /* API status pill */
+    .api-pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; }
+    .api-pill.online  { background:rgba(16,185,129,0.12); color:var(--success); border:1px solid rgba(16,185,129,0.3); }
+    .api-pill.offline { background:rgba(239,68,68,0.12);  color:var(--danger);  border:1px solid rgba(239,68,68,0.3); }
+    .api-dot { width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Loading overlay */
+    .upload-loading { display:none; flex-direction:column; align-items:center; gap:12px; padding:40px; }
+    .spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* Model metrics grid */
+    .metric-box { background:var(--surface2); border-radius:10px; padding:14px; text-align:center; }
+    .metric-box .m-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
+    .metric-box .m-val { font-size:28px; font-weight:900; }
+
+    .hamburger { display:none; position:fixed; top:16px; left:16px; z-index:200; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 10px; cursor:pointer; color:var(--text); font-size:18px; }
+    @media(max-width:900px) {
+      .sidebar { transform:translateX(-100%); } .sidebar.open { transform:translateX(0); }
+      .main-content { margin-left:0; padding:20px 16px; }
+      .grid-2,.grid-3 { grid-template-columns:1fr; } .hamburger { display:flex !important; }
+    }
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-track { background:var(--surface); }
+    ::-webkit-scrollbar-thumb { background:var(--surface3); border-radius:3px; }
+  </style>
+</head>
+<body>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()"><i class="fa fa-bars"></i></button>
+<div id="toast"></div>
+
+<div class="app-container">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">🎓</div>
+        <div class="logo-text"><h1>Retenza</h1><span>Dropout Risk Predictor</span></div>
+      </div>
+      <div class="accuracy-badge"><i class="fa fa-circle-check"></i> <span id="sb-accuracy">Loading…</span></div>
+      <div class="py-badge"><i class="fa fa-python"></i> Python + Flask Backend</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard"><i class="fa fa-chart-pie"></i> Dashboard</div>
+      <div class="nav-item" onclick="navigate('predict')" id="nav-predict"><i class="fa fa-brain"></i> Predict Risk</div>
+      <div class="nav-item" onclick="navigate('bulk')" id="nav-bulk"><i class="fa fa-upload"></i> Bulk Upload</div>
+      <div class="nav-section-label" style="margin-top:12px;">Analytics</div>
+      <div class="nav-item" onclick="navigate('history')" id="nav-history"><i class="fa fa-clock-rotate-left"></i> History <span class="nav-badge" id="history-count">0</span></div>
+      <div class="nav-item" onclick="navigate('model')" id="nav-model"><i class="fa fa-microchip"></i> Model Info</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="model-info-card">
+        <div class="mi-label">Random Forest</div>
+        <div class="mi-val" id="sb-auc">—</div>
+        <div class="mi-sub" id="sb-sub">Real scikit-learn model · 3,630 samples</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="breadcrumb"><i class="fa fa-home"></i> <span>Dashboard</span></div>
+        <div class="flex justify-between items-center flex-wrap gap-3">
+          <div><h2>Dashboard <span class="grad-text">Overview</span></h2><p>Real-time student dropout risk insights powered by Python ML.</p></div>
+          <div id="api-status-pill" class="api-pill offline"><span class="api-dot"></span> Checking API…</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent-color:var(--primary)">
+          <div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light)"><i class="fa fa-users"></i></div>
+          <div class="stat-info"><div class="label">Total Assessed</div><div class="value" id="stat-total">0</div><div class="sublabel">Via this session</div></div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--danger)">
+          <div class="stat-icon" style="background:rgba(239,68,68,0.15);color:var(--danger)"><i class="fa fa-triangle-exclamation"></i></div>
+          <div class="stat-info"><div class="label">High Risk</div><div class="value" id="stat-high">0</div><div class="sublabel">Need immediate help</div></div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--warning)">
+          <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--warning)"><i class="fa fa-circle-exclamation"></i></div>
+          <div class="stat-info"><div class="label">Medium Risk</div><div class="value" id="stat-med">0</div><div class="sublabel">Monitor &amp; support</div></div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--success)">
+          <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--success)"><i class="fa fa-circle-check"></i></div>
+          <div class="stat-info"><div class="label">Low Risk</div><div class="value" id="stat-low">0</div><div class="sublabel">On track</div></div>
+        </div>
+      </div>
+      <div class="grid-2 mb-4">
+        <div class="card"><div class="card-title"><i class="fa fa-chart-pie"></i> Risk Distribution</div><div class="chart-container"><canvas id="riskPieChart"></canvas></div></div>
+        <div class="card"><div class="card-title"><i class="fa fa-chart-bar"></i> Recent Assessments</div><div class="chart-container"><canvas id="historyBarChart"></canvas></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><i class="fa fa-star"></i> Top Predictive Features <span style="font-size:10px;color:var(--text-faint);font-weight:400;margin-left:4px;">(from real RF model)</span></div>
+          <div id="feature-importance-list"><div class="empty-state" style="padding:20px;"><i class="fa fa-spinner fa-spin"></i><p>Loading from Python backend…</p></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="fa fa-hand-holding-heart"></i> Support Services</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="service-card"><div class="service-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light)"><i class="fa fa-book"></i></div><div class="service-info"><div class="si-name">Academic Support</div><div class="si-email">academic.support@university.edu</div><div class="si-desc">Tutoring, advisors, study groups</div></div></div>
+            <div class="service-card"><div class="service-icon" style="background:rgba(16,185,129,0.15);color:var(--success)"><i class="fa fa-dollar-sign"></i></div><div class="service-info"><div class="si-name">Financial Aid Office</div><div class="si-email">financialaid@university.edu</div><div class="si-desc">Scholarships, emergency aid, payment plans</div></div></div>
+            <div class="service-card"><div class="service-icon" style="background:rgba(245,158,11,0.15);color:var(--warning)"><i class="fa fa-comments"></i></div><div class="service-info"><div class="si-name">Student Counseling</div><div class="si-email">counseling@university.edu</div><div class="si-desc">Time management, peer mentoring</div></div></div>
+            <div class="service-card"><div class="service-icon" style="background:rgba(244,114,182,0.15);color:var(--accent2)"><i class="fa fa-heart-pulse"></i></div><div class="service-info"><div class="si-name">Wellness Center</div><div class="si-email">wellness@university.edu</div><div class="si-desc">Personal support, wellness consultation</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PREDICT ===== -->
+    <div class="page" id="page-predict">
+      <div class="page-header">
+        <div class="breadcrumb"><i class="fa fa-home"></i> <span>Predict Risk</span></div>
+        <h2>Individual Student <span class="grad-text">Assessment</span></h2>
+        <p>Data is sent to the Python Flask API → Random Forest model → real ML prediction.</p>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="form-section">
+          <div class="form-section-title"><i class="fa fa-user"></i> Student Information</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Student Name</label><input type="text" id="f-name" placeholder="e.g. John Doe" /></div>
+            <div class="form-group"><label>Student ID</label><input type="text" id="f-sid" placeholder="e.g. 2025001" /></div>
+            <div class="form-group"><label>Age</label><input type="number" id="f-age" placeholder="18-35" min="17" max="60" value="20" /></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title"><i class="fa fa-graduation-cap"></i> Academic Performance</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Completion Rate – Semester 1 (0.0–1.0)</label><input type="number" id="f-cr1" step="0.01" min="0" max="1" value="0.85" /><div class="form-hint">Highest-weighted predictor</div></div>
+            <div class="form-group"><label>Completion Rate – Semester 2 (0.0–1.0)</label><input type="number" id="f-cr2" step="0.01" min="0" max="1" value="0.80" /></div>
+            <div class="form-group"><label>Approved Courses – Semester 1</label><input type="number" id="f-ap1" min="0" max="10" value="5" /></div>
+            <div class="form-group"><label>Approved Courses – Semester 2</label><input type="number" id="f-ap2" min="0" max="10" value="5" /></div>
+            <div class="form-group"><label>Average Grade – Semester 1 (0–20)</label><input type="number" id="f-g1" min="0" max="20" step="0.1" value="14.5" /></div>
+            <div class="form-group"><label>Average Grade – Semester 2 (0–20)</label><input type="number" id="f-g2" min="0" max="20" step="0.1" value="13.0" /></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title"><i class="fa fa-dollar-sign"></i> Financial Status</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Tuition Fees Status</label><select id="f-tuition"><option value="1">Up to Date ✅</option><option value="0">Not Up to Date ❌</option></select></div>
+            <div class="form-group"><label>Financial Risk</label><select id="f-finrisk"><option value="0">No Financial Risk</option><option value="1">Has Financial Risk</option></select></div>
+            <div class="form-group"><label>Scholarship Holder</label><select id="f-scholarship"><option value="0">No Scholarship</option><option value="1">Has Scholarship</option></select></div>
+            <div class="form-group"><label>Outstanding Debt</label><select id="f-debt"><option value="0">No Debt</option><option value="1">Has Outstanding Debt</option></select></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title"><i class="fa fa-clock"></i> Engagement &amp; Behavior</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Class Attendance Rate</label><select id="f-attendance"><option value="4">Excellent (&gt;90%)</option><option value="3" selected>Good (75–90%)</option><option value="2">Fair (60–74%)</option><option value="1">Poor (&lt;60%)</option></select></div>
+            <div class="form-group"><label>Weekly Study Hours</label><select id="f-study"><option value="4">Heavy (&gt;30 hrs)</option><option value="3" selected>Moderate (10–20 hrs)</option><option value="2">Light (5–10 hrs)</option><option value="1">Very Light (&lt;5 hrs)</option></select></div>
+            <div class="form-group"><label>Exam Preparation Level</label><select id="f-exam"><option value="3">High – systematic study</option><option value="2" selected>Medium – regular revision</option><option value="1">Low – minimal prep</option></select></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title"><i class="fa fa-person"></i> Personal Circumstances</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Employment Status</label><select id="f-employed"><option value="0">Not Working</option><option value="1">Part-time Worker</option><option value="2">Full-time Worker</option></select></div>
+            <div class="form-group"><label>Childcare Responsibilities</label><select id="f-childcare"><option value="0">No Childcare</option><option value="1">Has Childcare Responsibilities</option></select></div>
+            <div class="form-group"><label>Displaced / Refugee Status</label><select id="f-displaced"><option value="0">No</option><option value="1">Yes</option></select></div>
+          </div>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+          <button class="btn btn-primary btn-lg" onclick="runPrediction()" id="predict-btn"><i class="fa fa-bolt"></i> Generate Risk Assessment</button>
+          <button class="btn btn-outline" onclick="clearForm()"><i class="fa fa-eraser"></i> Clear</button>
+          <button class="btn btn-outline" onclick="fillSampleData()"><i class="fa fa-flask"></i> Sample Data</button>
+        </div>
+      </div>
+
+      <!-- RESULT -->
+      <div id="result-container">
+        <div class="result-hero" id="result-hero">
+          <div class="result-hero-top">
+            <div class="result-student-info">
+              <h3 id="res-name">—</h3>
+              <div class="sid" id="res-sid">—</div>
+              <div style="margin-top:10px;" id="res-badge"></div>
+              <div class="conf-badge" id="res-conf"></div>
+            </div>
+            <div class="result-score-ring">
+              <div class="ring-wrapper">
+                <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="50"/><circle class="ring-fill" cx="60" cy="60" r="50" id="ring-fill-circle" stroke-dasharray="314" stroke-dashoffset="314"/></svg>
+                <div class="ring-center"><div class="score-num" id="res-score-num">0%</div><div class="score-label">Risk Score</div></div>
+              </div>
+              <div class="risk-level-label" id="res-risk-label">—</div>
+            </div>
+          </div>
+          <div id="score-breakdown"></div>
+        </div>
+
+        <div class="grid-2 mb-4">
+          <div class="card"><div class="card-title"><i class="fa fa-triangle-exclamation"></i> Identified Risk Factors</div><div class="factors-list" id="factors-list"></div></div>
+          <div class="card"><div class="card-title"><i class="fa fa-chart-bar"></i> Score Breakdown</div><div class="chart-container" style="height:200px;"><canvas id="scoreRadarChart"></canvas></div></div>
+        </div>
+
+        <div class="card mb-4"><div class="card-title"><i class="fa fa-hand-holding-heart"></i> Recommended Interventions</div><div class="intervention-grid" id="intervention-grid"></div></div>
+
+        <div class="card">
+          <div class="card-title"><i class="fa fa-download"></i> Export &amp; Actions</div>
+          <div class="flex gap-3 flex-wrap">
+            <button class="btn btn-primary" onclick="exportPDF()"><i class="fa fa-file-pdf"></i> Export PDF Report</button>
+            <button class="btn btn-success" onclick="exportJSON()"><i class="fa fa-code"></i> Download JSON</button>
+            <button class="btn btn-outline" onclick="saveToHistory()"><i class="fa fa-bookmark"></i> Save to History</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BULK UPLOAD ===== -->
+    <div class="page" id="page-bulk">
+      <div class="page-header">
+        <div class="breadcrumb"><i class="fa fa-home"></i> <span>Bulk Upload</span></div>
+        <h2>Bulk Student <span class="grad-text">Analysis</span></h2>
+        <p>Upload CSV/Excel → Python processes each row with the RF model → results returned as JSON.</p>
+      </div>
+      <div class="card mb-4">
+        <div class="card-title"><i class="fa fa-upload"></i> Upload File</div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+             ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+          <i class="fa fa-cloud-arrow-up"></i>
+          <div class="dz-title">Drag &amp; drop your file here</div>
+          <div class="dz-sub">or click to browse · .xlsx / .xls / .csv</div>
+        </div>
+        <div class="upload-loading" id="upload-loading">
+          <div class="spinner"></div>
+          <div style="color:var(--text-muted);font-size:13px;">Python is running predictions…</div>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)" />
+        <div class="mt-4">
+          <div class="card-title" style="margin-bottom:10px;"><i class="fa fa-table"></i> Expected Column Format</div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>student_name</th><th>student_id</th><th>completion_rate_1</th><th>completion_rate_2</th><th>grade_1sem</th><th>grade_2sem</th><th>approved_1sem</th><th>approved_2sem</th><th>tuition_fees</th><th>financial_risk</th><th>attendance</th><th>study_hrs</th><th>age</th></tr></thead>
+              <tbody>
+                <tr><td>John Doe</td><td>2025001</td><td>0.85</td><td>0.70</td><td>14.5</td><td>12.0</td><td>5</td><td>4</td><td>1</td><td>0</td><td>3</td><td>3</td><td>19</td></tr>
+                <tr><td>Jane Smith</td><td>2025002</td><td>0.40</td><td>0.30</td><td>9.5</td><td>8.0</td><td>2</td><td>2</td><td>0</td><td>1</td><td>2</td><td>1</td><td>22</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-4"><button class="btn btn-outline btn-sm" onclick="downloadSampleCSV()"><i class="fa fa-download"></i> Download Sample CSV</button></div>
+        </div>
+      </div>
+      <div id="bulk-results" style="display:none;">
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-card" style="--accent-color:var(--primary)"><div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light)"><i class="fa fa-users"></i></div><div class="stat-info"><div class="label">Total Analyzed</div><div class="value" id="bulk-total">0</div></div></div>
+          <div class="stat-card" style="--accent-color:var(--danger)"><div class="stat-icon" style="background:rgba(239,68,68,0.15);color:var(--danger)"><i class="fa fa-triangle-exclamation"></i></div><div class="stat-info"><div class="label">At-Risk Students</div><div class="value" id="bulk-risk">0</div></div></div>
+          <div class="stat-card" style="--accent-color:var(--success)"><div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--success)"><i class="fa fa-circle-check"></i></div><div class="stat-info"><div class="label">Low Risk</div><div class="value" id="bulk-safe">0</div></div></div>
+        </div>
+        <div class="card mt-4">
+          <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+            <div class="card-title" style="margin:0"><i class="fa fa-table"></i> Batch Results</div>
+            <div class="flex gap-3">
+              <button class="btn btn-success btn-sm" onclick="exportBulkExcel()"><i class="fa fa-file-excel"></i> Export Excel (via Python)</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="bulk-table">
+              <thead><tr><th onclick="sortTable('name')">Name ↕</th><th onclick="sortTable('sid')">ID ↕</th><th onclick="sortTable('score')">Risk Score ↕</th><th>Risk Level</th><th>Primary Factor</th><th>Probability</th></tr></thead>
+              <tbody id="bulk-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== HISTORY ===== -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <div class="breadcrumb"><i class="fa fa-home"></i> <span>History</span></div>
+        <h2>Prediction <span class="grad-text">History</span></h2>
+        <p>All previous student assessments stored locally in your browser.</p>
+      </div>
+      <div class="search-bar"><i class="fa fa-search"></i><input type="text" id="history-search" placeholder="Search by name or ID…" oninput="filterHistory()" /></div>
+      <div class="flex justify-between items-center mb-4">
+        <div class="text-muted text-xs" id="history-count-label">No records yet</div>
+        <button class="btn btn-outline btn-sm" onclick="clearHistory()"><i class="fa fa-trash"></i> Clear All</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
+
+    <!-- ===== MODEL INFO ===== -->
+    <div class="page" id="page-model">
+      <div class="page-header">
+        <div class="breadcrumb"><i class="fa fa-home"></i> <span>Model Info</span></div>
+        <h2>Machine Learning <span class="grad-text">Model</span></h2>
+        <p>Live metrics from the actual trained Python scikit-learn Random Forest classifier.</p>
+      </div>
+      <div class="grid-2 mb-4">
+        <div class="card">
+          <div class="card-title"><i class="fa fa-microchip"></i> Model Performance <span id="model-loading-badge" style="font-size:11px;color:var(--text-faint);font-weight:400;margin-left:4px;">(loading…)</span></div>
+          <div class="grid-2" style="gap:12px;margin-bottom:12px;">
+            <div class="metric-box"><div class="m-label">Accuracy</div><div class="m-val" id="metric-accuracy" style="color:var(--success)">—</div></div>
+            <div class="metric-box"><div class="m-label">AUC Score</div><div class="m-val" id="metric-auc" style="color:var(--accent)">—</div></div>
+            <div class="metric-box"><div class="m-label">Precision</div><div class="m-val" id="metric-precision" style="color:var(--primary-light)">—</div></div>
+            <div class="metric-box"><div class="m-label">Recall</div><div class="m-val" id="metric-recall" style="color:var(--accent2)">—</div></div>
+          </div>
+          <div class="metric-box"><div class="m-label">F1 Score</div><div class="m-val grad-text" id="metric-f1">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="fa fa-database"></i> Training Dataset</div>
+          <div class="chart-container" style="height:220px;"><canvas id="trainingSplitChart"></canvas></div>
+          <div class="mt-4" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="feature-bar"><div class="fb-label">Total Records</div><div class="fb-track"><div class="fb-fill" style="width:100%"></div></div><div class="fb-pct">3,630</div></div>
+            <div class="feature-bar"><div class="fb-label">Training Set (80%)</div><div class="fb-track"><div class="fb-fill" style="width:80%"></div></div><div class="fb-pct" id="m-train-size">2,904</div></div>
+            <div class="feature-bar"><div class="fb-label">Test Set (20%)</div><div class="fb-track"><div class="fb-fill" style="width:20%"></div></div><div class="fb-pct" id="m-test-size">726</div></div>
+            <div class="feature-bar"><div class="fb-label">Dropout Rate</div><div class="fb-track"><div class="fb-fill" style="width:39.15%;background:linear-gradient(90deg,var(--danger),var(--warning))"></div></div><div class="fb-pct" id="m-dropout-rate">39%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-title"><i class="fa fa-star"></i> Feature Importance (from trained RF model)</div>
+        <div id="model-feature-list"><div class="empty-state" style="padding:20px;"><i class="fa fa-spinner fa-spin"></i><p>Fetching from Python API…</p></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa fa-layer-group"></i> Feature Categories</div>
+        <div class="grid-3" style="gap:12px;">
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;"><div style="color:var(--primary-light);font-weight:700;margin-bottom:6px;font-size:13px;"><i class="fa fa-graduation-cap"></i> Academic</div><div style="color:var(--text-muted);font-size:12px;">20 features</div></div>
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;"><div style="color:var(--success);font-weight:700;margin-bottom:6px;font-size:13px;"><i class="fa fa-dollar-sign"></i> Financial</div><div style="color:var(--text-muted);font-size:12px;">4 features</div></div>
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;"><div style="color:var(--warning);font-weight:700;margin-bottom:6px;font-size:13px;"><i class="fa fa-chart-line"></i> Behavioral</div><div style="color:var(--text-muted);font-size:12px;">11 features</div></div>
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;"><div style="color:var(--accent2);font-weight:700;margin-bottom:6px;font-size:13px;"><i class="fa fa-person"></i> Demographics</div><div style="color:var(--text-muted);font-size:12px;">8 features</div></div>
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;"><div style="color:var(--accent);font-weight:700;margin-bottom:6px;font-size:13px;"><i class="fa fa-globe"></i> Socioeconomic</div><div style="color:var(--text-muted);font-size:12px;">3 features</div></div>
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;"><div style="color:var(--primary-light);font-weight:700;margin-bottom:6px;font-size:13px;"><i class="fa fa-flask"></i> Engineered</div><div style="color:var(--text-muted);font-size:12px;">7 features</div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// ================================================================
+// STATE
+// ================================================================
+let predictionHistory = JSON.parse(localStorage.getItem('retenza_history') || '[]');
+let bulkResults = [];
+let lastPrediction = null;
+let chartInstances = {};
+let modelInfo = null;  // cached from /api/model-info
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  if (window.innerWidth <= 900) closeSidebar();
+  if (page === 'dashboard') renderDashboardCharts();
+  if (page === 'history')   renderHistory();
+  if (page === 'model')     renderModelPage();
+  updateHistoryBadge();
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function closeSidebar()   { document.getElementById('sidebar').classList.remove('open'); }
+
+// ================================================================
+// API HELPERS
+// ================================================================
+async function apiGet(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+async function apiPost(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+// ================================================================
+// LOAD MODEL INFO (cached)
+// ================================================================
+async function loadModelInfo() {
+  if (modelInfo) return modelInfo;
+  try {
+    const data = await apiGet('/api/model-info');
+    if (data.success) {
+      modelInfo = data;
+      // Update sidebar
+      document.getElementById('sb-accuracy').textContent = data.metrics.accuracy + '% Model Accuracy';
+      document.getElementById('sb-auc').textContent = 'AUC ' + data.metrics.auc;
+      document.getElementById('sb-sub').textContent =
+        `F1: ${data.metrics.f1}% · ${data.metrics.training_size.toLocaleString()} train samples`;
+      setApiStatus(true);
+    }
+    return data;
+  } catch (e) {
+    setApiStatus(false);
+    return null;
+  }
+}
+
+function setApiStatus(online) {
+  const pill = document.getElementById('api-status-pill');
+  if (!pill) return;
+  pill.className = 'api-pill ' + (online ? 'online' : 'offline');
+  pill.innerHTML = `<span class="api-dot"></span> Python API ${online ? 'Online' : 'Offline'}`;
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+async function renderDashboardCharts() {
+  updateStatCards();
+  renderPieChart();
+  renderHistoryBarChart();
+
+  const info = await loadModelInfo();
+  if (info && info.success) {
+    renderFeatureListFromData(info.feature_importances.slice(0, 6), 'feature-importance-list');
+  }
+}
+
+function updateStatCards() {
+  const total = predictionHistory.length;
+  animCount('stat-total', total);
+  animCount('stat-high',  predictionHistory.filter(p => p.riskLevel === 'High').length);
+  animCount('stat-med',   predictionHistory.filter(p => p.riskLevel === 'Medium').length);
+  animCount('stat-low',   predictionHistory.filter(p => p.riskLevel === 'Low').length);
+}
+function animCount(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let cur = 0; const step = Math.ceil(target/20)||1;
+  const t = setInterval(() => { cur = Math.min(cur+step, target); el.textContent = cur; if(cur>=target) clearInterval(t); }, 30);
+}
+function destroyChart(key) {
+  if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; }
+}
+function renderPieChart() {
+  destroyChart('pie');
+  const high = predictionHistory.filter(p => p.riskLevel==='High').length;
+  const med  = predictionHistory.filter(p => p.riskLevel==='Medium').length;
+  const low  = predictionHistory.filter(p => p.riskLevel==='Low').length;
+  const data = predictionHistory.length === 0 ? [12,28,60] : [high,med,low];
+  chartInstances['pie'] = new Chart(document.getElementById('riskPieChart'), {
+    type: 'doughnut',
+    data: { labels:['High Risk','Medium Risk','Low Risk'], datasets:[{ data, backgroundColor:['rgba(239,68,68,0.85)','rgba(245,158,11,0.85)','rgba(16,185,129,0.85)'], borderColor:['#ef4444','#f59e0b','#10b981'], borderWidth:2, hoverOffset:8 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{color:'#94a3b8',font:{family:'Inter',size:12},padding:16} } }, cutout:'65%' }
+  });
+}
+function renderHistoryBarChart() {
+  destroyChart('bar');
+  const recent = [...predictionHistory].slice(-10);
+  const labels = recent.map(p => p.name.split(' ')[0]);
+  const scores = recent.map(p => p.score);
+  chartInstances['bar'] = new Chart(document.getElementById('historyBarChart'), {
+    type: 'bar',
+    data: { labels: labels.length ? labels : ['Demo'], datasets:[{ label:'Risk Score %', data:scores.length?scores:[42], backgroundColor:(scores.length?scores:[42]).map(s=>s>=60?'rgba(239,68,68,0.7)':s>=40?'rgba(245,158,11,0.7)':'rgba(16,185,129,0.7)'), borderRadius:6, borderSkipped:false }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8',font:{family:'Inter',size:11}}}, y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8',font:{family:'Inter',size:11},callback:v=>v+'%'}} } }
+  });
+}
+
+function renderFeatureListFromData(features, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const maxPct = features[0]?.importance || 17;
+  el.innerHTML = features.map(f => `
+    <div class="feature-bar">
+      <div class="fb-label">${f.feature}</div>
+      <div class="fb-track"><div class="fb-fill" style="width:${(f.importance/maxPct)*100}%"></div></div>
+      <div class="fb-pct">${f.importance}%</div>
+    </div>`).join('');
+}
+
+// ================================================================
+// RUN PREDICTION → Python API
+// ================================================================
+async function runPrediction() {
+  const name = document.getElementById('f-name').value.trim() || 'Unknown Student';
+  const sid  = document.getElementById('f-sid').value.trim()  || 'N/A';
+  const payload = {
+    name, sid,
+    cr1:        document.getElementById('f-cr1').value,
+    cr2:        document.getElementById('f-cr2').value,
+    ap1:        document.getElementById('f-ap1').value,
+    ap2:        document.getElementById('f-ap2').value,
+    g1:         document.getElementById('f-g1').value,
+    g2:         document.getElementById('f-g2').value,
+    tuition:    document.getElementById('f-tuition').value,
+    finrisk:    document.getElementById('f-finrisk').value,
+    scholarship:document.getElementById('f-scholarship').value,
+    debt:       document.getElementById('f-debt').value,
+    attendance: document.getElementById('f-attendance').value,
+    study:      document.getElementById('f-study').value,
+    exam:       document.getElementById('f-exam').value,
+    employed:   document.getElementById('f-employed').value,
+    childcare:  document.getElementById('f-childcare').value,
+    displaced:  document.getElementById('f-displaced').value,
+    age:        document.getElementById('f-age').value,
+  };
+
+  const btn = document.getElementById('predict-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Python model running…';
+
+  try {
+    const result = await apiPost('/api/predict', payload);
+    if (!result.success) throw new Error(result.error || 'Prediction failed');
+
+    lastPrediction = {
+      ...payload,
+      score:         result.score,
+      riskLevel:     result.riskLevel,
+      probability:   result.probability,
+      confidence:    result.confidence,
+      factors:       result.factors,
+      breakdown:     result.breakdown,
+      interventions: result.interventions,
+      model:         result.model,
+      timestamp:     new Date().toISOString(),
+    };
+    renderResult(lastPrediction);
+    showToast('success', `RF model: ${result.riskLevel} risk (${result.score}%)`);
+  } catch (err) {
+    showToast('error', 'Error: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-bolt"></i> Generate Risk Assessment';
+  }
+}
+
+// ================================================================
+// RENDER RESULT
+// ================================================================
+function renderResult(pred) {
+  const container = document.getElementById('result-container');
+  container.style.display = 'block';
+  container.scrollIntoView({ behavior:'smooth', block:'start' });
+
+  document.getElementById('res-name').textContent = pred.name;
+  document.getElementById('res-sid').textContent  = `ID: ${pred.sid}  |  ${new Date(pred.timestamp).toLocaleString()}`;
+
+  const badgeMap = { High:'risk-high', Medium:'risk-medium', Low:'risk-low' };
+  document.getElementById('res-badge').innerHTML =
+    `<span class="risk-badge ${badgeMap[pred.riskLevel]}"><i class="fa fa-circle"></i> ${pred.riskLevel} Risk</span>`;
+
+  const confEl = document.getElementById('res-conf');
+  if (pred.confidence !== undefined)
+    confEl.textContent = `Model confidence: ${Math.round(pred.confidence*100)}% · ${pred.model || 'Random Forest'}`;
+
+  // Ring
+  const ringColors = { High:'#ef4444', Medium:'#f59e0b', Low:'#10b981' };
+  const ring = document.getElementById('ring-fill-circle');
+  ring.style.stroke = ringColors[pred.riskLevel];
+  setTimeout(() => { ring.style.strokeDashoffset = 314 - (314 * pred.score / 100); }, 100);
+  document.getElementById('res-score-num').textContent = pred.score + '%';
+  document.getElementById('res-score-num').style.color = ringColors[pred.riskLevel];
+  document.getElementById('res-risk-label').textContent = pred.riskLevel + ' Risk';
+  document.getElementById('res-risk-label').style.color = ringColors[pred.riskLevel];
+
+  // Breakdown bars
+  document.getElementById('score-breakdown').innerHTML =
+    Object.entries(pred.breakdown).map(([cat, v]) => {
+      const pctBar = Math.round((v.score / v.max) * 100);
+      const color  = pctBar >= 60 ? '#ef4444' : pctBar >= 40 ? '#f59e0b' : '#10b981';
+      return `<div style="margin-bottom:10px;">
+        <div class="flex justify-between" style="margin-bottom:4px;font-size:12px;">
+          <span style="color:var(--text-muted)">${cat}</span>
+          <span style="color:${color};font-weight:600">${v.score}/${v.max}</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pctBar}%;background:${color}"></div></div>
+      </div>`;
+    }).join('');
+
+  // Factors
+  document.getElementById('factors-list').innerHTML = pred.factors.length
+    ? pred.factors.map(f => `
+        <div class="factor-item sev-${f.sev.toLowerCase()}">
+          <span class="factor-icon">${f.icon}</span>
+          <span class="factor-name">${f.name}</span>
+          <span class="factor-sev sev-badge-${f.sev.toLowerCase()}">${f.sev}</span>
+        </div>`).join('')
+    : '<div class="empty-state" style="padding:20px;"><i class="fa fa-circle-check"></i><p>No significant risk factors identified.</p></div>';
+
+  // Radar chart
+  renderRadarChart(pred.breakdown);
+
+  // Interventions
+  document.getElementById('intervention-grid').innerHTML = pred.interventions.map(int => `
+    <div class="intervention-card">
+      <div class="int-header">
+        <div class="int-icon" style="background:${int.color};color:${int.iconColor}"><i class="${int.icon}"></i></div>
+        <div><div class="int-dept">${int.dept}</div><div class="int-contact">${int.email}</div></div>
+      </div>
+      <ul class="int-actions">${int.actions.map(a=>`<li>• ${a}</li>`).join('')}</ul>
+      <div class="int-btn-group">
+        <button class="btn btn-outline btn-sm" onclick="sendEmail('${int.email}','${pred.name}','${pred.score}','${pred.riskLevel}')"><i class="fa fa-envelope"></i> Email</button>
+        <button class="btn btn-outline btn-sm" onclick="scheduleMeeting('${int.dept}','${int.phone}')"><i class="fa fa-calendar"></i> Schedule</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderRadarChart(breakdown) {
+  destroyChart('radar');
+  const labels = Object.keys(breakdown);
+  const data   = Object.values(breakdown).map(v => Math.round((v.score/v.max)*100));
+  chartInstances['radar'] = new Chart(document.getElementById('scoreRadarChart'), {
+    type: 'radar',
+    data: { labels, datasets:[{ label:'Risk %', data, backgroundColor:'rgba(99,102,241,0.2)', borderColor:'#6366f1', pointBackgroundColor:'#818cf8', pointRadius:5, borderWidth:2 }] },
+    options: { responsive:true, maintainAspectRatio:false, scales:{ r:{ min:0, max:100, grid:{color:'rgba(255,255,255,0.07)'}, ticks:{color:'#475569',backdropColor:'transparent',stepSize:25}, pointLabels:{color:'#94a3b8',font:{family:'Inter',size:12}} } }, plugins:{legend:{display:false}} }
+  });
+}
+
+// ================================================================
+// EMAIL / SCHEDULE
+// ================================================================
+function sendEmail(email, name, score, level) {
+  const subj = encodeURIComponent(`Student Dropout Risk Alert: ${name}`);
+  const body = encodeURIComponent(`Dear Support Team,\n\nStudent: ${name}\nRisk Score: ${score}%\nRisk Level: ${level}\n\nPlease review and reach out.\n\nGenerated by Retenza – Student Dropout Risk Prediction System.`);
+  window.location.href = `mailto:${email}?subject=${subj}&body=${body}`;
+  showToast('info', 'Opening email client…');
+}
+function scheduleMeeting(dept, phone) {
+  showToast('info', `${dept} · ${phone}`);
+  alert(`Schedule a meeting with:\n${dept}\n\nPhone: ${phone}`);
+}
+
+// ================================================================
+// EXPORT PDF (client-side jsPDF)
+// ================================================================
+function exportPDF() {
+  if (!lastPrediction) { showToast('error', 'No prediction to export.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  const p = lastPrediction;
+  doc.setFillColor(99,102,241);
+  doc.rect(0,0,210,40,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.text('Retenza', 15, 17);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text('Student Dropout Risk Assessment Report', 15, 25);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 32);
+  const riskColor = p.riskLevel==='High'?[239,68,68]:p.riskLevel==='Medium'?[245,158,11]:[16,185,129];
+  doc.setFillColor(...riskColor);
+  doc.roundedRect(140,8,55,24,4,4,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text(p.score+'%', 167.5, 24, {align:'center'});
+  doc.setFontSize(9); doc.text(p.riskLevel+' Risk', 167.5, 30, {align:'center'});
+  doc.setTextColor(30,30,50); doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('Student Information', 15, 52);
+  doc.setDrawColor(200,200,220); doc.line(15,54,195,54);
+  doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(50,50,80);
+  let y = 62;
+  [['Name:',p.name],['ID:',p.sid],['Age:',p.age],['Date:',new Date(p.timestamp).toLocaleString()]].forEach(([l,v])=>{
+    doc.setFont('helvetica','bold'); doc.text(l,15,y); doc.setFont('helvetica','normal'); doc.text(String(v),60,y); y+=7;
+  });
+  if (p.confidence) { doc.setFont('helvetica','bold'); doc.text('Model Confidence:',15,y); doc.setFont('helvetica','normal'); doc.text(Math.round(p.confidence*100)+'%',60,y); y+=7; }
+  y+=4;
+  doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,50);
+  doc.text('Risk Factors', 15, y); y+=3; doc.line(15,y,195,y); y+=8;
+  doc.setFontSize(10);
+  if (!p.factors.length) { doc.setFont('helvetica','normal'); doc.setTextColor(16,185,129); doc.text('No significant risk factors detected.', 15, y); y+=8; }
+  else { p.factors.forEach(f => { doc.setFont('helvetica','normal'); doc.setTextColor(50,50,80); doc.text(`• ${f.name} (${f.sev})`, 15, y); y+=7; if(y>270){doc.addPage();y=20;} }); }
+  y+=4;
+  doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,50);
+  doc.text('Recommended Interventions', 15, y); y+=3; doc.line(15,y,195,y); y+=8;
+  p.interventions.forEach(int => {
+    doc.setFont('helvetica','bold'); doc.setTextColor(99,102,241); doc.text(int.dept,15,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setTextColor(50,50,80);
+    doc.text('Contact: '+int.email,15,y); y+=5; doc.text('Phone: '+int.phone,15,y); y+=6;
+    int.actions.slice(0,3).forEach(a=>{doc.text('• '+a,20,y);y+=5;});
+    y+=4; if(y>270){doc.addPage();y=20;}
+  });
+  doc.setFontSize(8); doc.setTextColor(150,163,184);
+  doc.text('Retenza - AI-Powered Student Dropout Risk Prediction System | Python Random Forest Backend',105,290,{align:'center'});
+  doc.save(`Retenza_${p.name.replace(/\s+/g,'_')}_${p.sid}.pdf`);
+  showToast('success', 'PDF report downloaded!');
+}
+
+function exportJSON() {
+  if (!lastPrediction) { showToast('error', 'No prediction to export.'); return; }
+  const blob = new Blob([JSON.stringify(lastPrediction, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `Retenza_${lastPrediction.sid}_data.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('success', 'JSON downloaded!');
+}
+
+function saveToHistory() {
+  if (!lastPrediction) { showToast('error', 'No prediction to save.'); return; }
+  const exists = predictionHistory.find(p => p.sid===lastPrediction.sid && p.timestamp===lastPrediction.timestamp);
+  if (!exists) {
+    predictionHistory.push({...lastPrediction});
+    localStorage.setItem('retenza_history', JSON.stringify(predictionHistory));
+    updateHistoryBadge();
+    showToast('success', 'Saved to history!');
+  } else { showToast('info', 'Already in history.'); }
+}
+function updateHistoryBadge() { document.getElementById('history-count').textContent = predictionHistory.length; }
+
+// ================================================================
+// BULK UPLOAD → Python API
+// ================================================================
+function handleDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
+function handleDragLeave()  { document.getElementById('drop-zone').classList.remove('dragover'); }
+function handleDrop(e)      { e.preventDefault(); document.getElementById('drop-zone').classList.remove('dragover'); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }
+function handleFileUpload(e){ if(e.target.files[0]) processFile(e.target.files[0]); }
+
+async function processFile(file) {
+  const dz = document.getElementById('drop-zone');
+  const ul = document.getElementById('upload-loading');
+  dz.style.display = 'none';
+  ul.style.display = 'flex';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const resp = await fetch('/api/bulk-predict', { method:'POST', body: formData });
+    const result = await resp.json();
+    if (!result.success) throw new Error(result.error || 'Bulk prediction failed');
+
+    bulkResults = result.results;
+    renderBulkResults(result.summary);
+    showToast('success', `Python processed ${result.summary.total} students!`);
+  } catch (err) {
+    showToast('error', 'Upload failed: ' + err.message);
+    dz.style.display = 'block';
+  } finally {
+    ul.style.display = 'none';
+    if (bulkResults.length === 0) dz.style.display = 'block';
+  }
+}
+
+let sortKey = 'score', sortDir = -1;
+function sortTable(key) {
+  if (sortKey === key) sortDir *= -1; else { sortKey=key; sortDir=-1; }
+  bulkResults.sort((a,b) => {
+    const va=sortKey==='score'?a.score:(a[sortKey]||'').toString().toLowerCase();
+    const vb=sortKey==='score'?b.score:(b[sortKey]||'').toString().toLowerCase();
+    return (va<vb?-1:va>vb?1:0)*sortDir;
+  });
+  renderBulkTable();
+}
+
+function renderBulkResults(summary) {
+  document.getElementById('bulk-total').textContent = summary.total;
+  document.getElementById('bulk-risk').textContent  = summary.high + summary.medium;
+  document.getElementById('bulk-safe').textContent  = summary.low;
+  document.getElementById('bulk-results').style.display = 'block';
+  renderBulkTable();
+}
+function renderBulkTable() {
+  const riskColors = { High:'#ef4444', Medium:'#f59e0b', Low:'#10b981' };
+  document.getElementById('bulk-tbody').innerHTML = bulkResults.map(r => `
+    <tr>
+      <td>${r.name}</td><td>${r.sid}</td>
+      <td><div class="flex items-center gap-2">
+        <div class="progress-bar-wrap" style="width:80px;margin:0"><div class="progress-bar-fill" style="width:${r.score}%;background:${riskColors[r.riskLevel]}"></div></div>
+        <span style="font-weight:700;color:${riskColors[r.riskLevel]}">${r.score}%</span>
+      </div></td>
+      <td><span class="risk-badge ${r.riskLevel==='High'?'risk-high':r.riskLevel==='Medium'?'risk-medium':'risk-low'}" style="font-size:10px;">${r.riskLevel}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-muted);" title="${r.factors[0]?.name||'None'}">${r.factors[0]?.name||'None identified'}</td>
+      <td style="font-size:12px;color:var(--primary-light);">${(r.probability*100).toFixed(1)}%</td>
+    </tr>`).join('');
+}
+
+async function exportBulkExcel() {
+  if (!bulkResults.length) { showToast('error', 'No results to export.'); return; }
+  try {
+    showToast('info', 'Generating Excel via Python…');
+    const resp = await fetch('/api/export/excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results: bulkResults }),
+    });
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'Retenza_Bulk_Results.xlsx';
+    a.click(); URL.revokeObjectURL(url);
+    showToast('success', 'Excel downloaded!');
+  } catch (err) { showToast('error', 'Export failed: ' + err.message); }
+}
+
+function downloadSampleCSV() {
+  const csv = `student_name,student_id,completion_rate_1,completion_rate_2,grade_1sem,grade_2sem,approved_1sem,approved_2sem,tuition_fees,financial_risk,attendance,study_hrs,age
+John Doe,2025001,0.85,0.70,14.5,12.0,5,4,1,0,3,3,19
+Jane Smith,2025002,0.40,0.30,9.5,8.0,2,2,0,1,2,1,22
+Alex Johnson,2025003,0.95,0.90,17.0,16.5,6,6,1,0,4,4,21
+Maria Garcia,2025004,0.55,0.45,11.0,9.0,3,3,0,1,2,2,25
+Chris Lee,2025005,0.75,0.80,13.5,14.0,5,5,1,0,3,3,20`;
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'Retenza_Sample.csv'; a.click();
+  showToast('success', 'Sample CSV downloaded!');
+}
+
+// ================================================================
+// HISTORY
+// ================================================================
+function renderHistory() {
+  updateHistoryBadge();
+  const query    = (document.getElementById('history-search')?.value || '').toLowerCase();
+  const filtered = predictionHistory.filter(p => p.name.toLowerCase().includes(query) || p.sid.toLowerCase().includes(query));
+  document.getElementById('history-count-label').textContent = `${filtered.length} record${filtered.length!==1?'s':''}`;
+  const list = document.getElementById('history-list');
+  if (!filtered.length) { list.innerHTML = `<div class="empty-state"><i class="fa fa-clock-rotate-left"></i><p>No records found.</p></div>`; return; }
+  const riskColors = { High:'#ef4444', Medium:'#f59e0b', Low:'#10b981' };
+  const bgColors   = { High:'rgba(239,68,68,0.15)', Medium:'rgba(245,158,11,0.15)', Low:'rgba(16,185,129,0.15)' };
+  list.innerHTML = [...filtered].reverse().map((p, i) => {
+    const initials = p.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="history-item" onclick="viewHistoryItem(${predictionHistory.length-1-i})">
+      <div class="history-avatar" style="background:${bgColors[p.riskLevel]};color:${riskColors[p.riskLevel]}">${initials}</div>
+      <div class="history-info"><div class="hname">${p.name}</div><div class="htime">ID: ${p.sid} · ${new Date(p.timestamp).toLocaleString()}</div></div>
+      <div style="text-align:right;">
+        <div class="history-score" style="color:${riskColors[p.riskLevel]}">${p.score}%</div>
+        <span class="risk-badge ${p.riskLevel==='High'?'risk-high':p.riskLevel==='Medium'?'risk-medium':'risk-low'}" style="font-size:10px;padding:2px 8px;">${p.riskLevel}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function filterHistory()  { renderHistory(); }
+function clearHistory()   { if(!confirm('Clear all history?')) return; predictionHistory=[]; localStorage.setItem('retenza_history','[]'); updateHistoryBadge(); renderHistory(); showToast('info','History cleared.'); }
+function viewHistoryItem(idx) {
+  const pred = predictionHistory[idx]; if (!pred) return;
+  lastPrediction = pred; navigate('predict');
+  setTimeout(() => {
+    ['name','sid','age','cr1','cr2','ap1','ap2','g1','g2'].forEach(k => {
+      const el = document.getElementById('f-'+k); if(el) el.value = pred[k]||'';
+    });
+    renderResult(pred);
+  }, 100);
+}
+
+// ================================================================
+// MODEL PAGE → fetch real data from Python
+// ================================================================
+async function renderModelPage() {
+  destroyChart('trainSplit');
+  chartInstances['trainSplit'] = new Chart(document.getElementById('trainingSplitChart'), {
+    type: 'pie',
+    data: { labels:['Training Set (80%)','Test Set (20%)'], datasets:[{ data:[2904,726], backgroundColor:['rgba(99,102,241,0.75)','rgba(34,211,238,0.75)'], borderColor:['#6366f1','#22d3ee'], borderWidth:2 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{color:'#94a3b8',font:{family:'Inter',size:12}}} } }
+  });
+
+  const info = await loadModelInfo();
+  if (info && info.success) {
+    const m = info.metrics;
+    document.getElementById('metric-accuracy').textContent  = m.accuracy  + '%';
+    document.getElementById('metric-auc').textContent       = m.auc;
+    document.getElementById('metric-precision').textContent = m.precision + '%';
+    document.getElementById('metric-recall').textContent    = m.recall    + '%';
+    document.getElementById('metric-f1').textContent        = m.f1        + '%';
+    document.getElementById('m-train-size').textContent     = m.training_size.toLocaleString();
+    document.getElementById('m-test-size').textContent      = m.test_size.toLocaleString();
+    document.getElementById('m-dropout-rate').textContent   = m.dropout_rate + '%';
+    document.getElementById('model-loading-badge').textContent = '(live from Python API)';
+    renderFeatureListFromData(info.feature_importances, 'model-feature-list');
+  } else {
+    document.getElementById('model-loading-badge').textContent = '(API offline)';
+  }
+}
+
+// ================================================================
+// FORM HELPERS
+// ================================================================
+function clearForm() {
+  ['f-name','f-sid'].forEach(id => document.getElementById(id).value='');
+  Object.assign(document.getElementById('f-age'),   {value:20});
+  Object.assign(document.getElementById('f-cr1'),   {value:0.85});
+  Object.assign(document.getElementById('f-cr2'),   {value:0.80});
+  Object.assign(document.getElementById('f-ap1'),   {value:5});
+  Object.assign(document.getElementById('f-ap2'),   {value:5});
+  Object.assign(document.getElementById('f-g1'),    {value:14.5});
+  Object.assign(document.getElementById('f-g2'),    {value:13.0});
+  document.getElementById('result-container').style.display = 'none';
+}
+function fillSampleData() {
+  const samples = [
+    {name:'Riya Sharma', sid:'2025101', age:19, cr1:0.35, cr2:0.28, ap1:2, ap2:1, g1:8.5, g2:6.0, tuition:'0', finrisk:'1', scholarship:'0', debt:'1', attendance:'1', study:'1', exam:'1', employed:'1', childcare:'0', displaced:'0'},
+    {name:'David Chen',  sid:'2025102', age:21, cr1:0.90, cr2:0.88, ap1:6, ap2:6, g1:16.0, g2:15.5, tuition:'1', finrisk:'0', scholarship:'1', debt:'0', attendance:'4', study:'4', exam:'3', employed:'0', childcare:'0', displaced:'0'},
+    {name:'Sara Patel',  sid:'2025103', age:23, cr1:0.62, cr2:0.55, ap1:4, ap2:3, g1:12.0, g2:10.5, tuition:'0', finrisk:'0', scholarship:'0', debt:'0', attendance:'2', study:'2', exam:'2', employed:'1', childcare:'1', displaced:'0'},
+  ];
+  const s = samples[Math.floor(Math.random()*samples.length)];
+  const fmap = {name:'f-name',sid:'f-sid',age:'f-age',cr1:'f-cr1',cr2:'f-cr2',ap1:'f-ap1',ap2:'f-ap2',g1:'f-g1',g2:'f-g2',tuition:'f-tuition',finrisk:'f-finrisk',scholarship:'f-scholarship',debt:'f-debt',attendance:'f-attendance',study:'f-study',exam:'f-exam',employed:'f-employed',childcare:'f-childcare',displaced:'f-displaced'};
+  Object.entries(fmap).forEach(([k,id]) => { const el=document.getElementById(id); if(el) el.value=s[k]; });
+  showToast('info', `Sample loaded: ${s.name}`);
+}
+
+// ================================================================
+// TOAST
+// ================================================================
+function showToast(type, message) {
+  const toast  = document.getElementById('toast');
+  const icons  = {success:'fa-circle-check',error:'fa-circle-xmark',info:'fa-circle-info'};
+  const el     = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.innerHTML = `<i class="fa ${icons[type]||'fa-circle-info'}"></i> ${message}`;
+  toast.appendChild(el);
+  setTimeout(() => { el.style.cssText='opacity:0;transform:translateX(40px);transition:all 0.3s'; setTimeout(()=>el.remove(),300); }, 3500);
+}
+
+// ================================================================
+// INIT
+// ================================================================
+window.addEventListener('DOMContentLoaded', async () => {
+  updateHistoryBadge();
+  await loadModelInfo();   // Fetch real model data on startup
+  renderDashboardCharts();
+  document.addEventListener('click', e => {
+    const s=document.getElementById('sidebar'), h=document.getElementById('hamburger');
+    if(window.innerWidth<=900 && !s.contains(e.target) && !h.contains(e.target)) closeSidebar();
+  });
+});
+</script>
+</body>
+</html>

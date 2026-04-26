@@ -1,0 +1,82 @@
+{
+  "accuracy": 100.0,
+  "auc": 1.0,
+  "precision": 100.0,
+  "recall": 100.0,
+  "f1": 100.0,
+  "training_size": 2904,
+  "test_size": 726,
+  "n_features": 17,
+  "dropout_rate": 39.15,
+  "n_estimators": 200,
+  "feature_importances": [
+    {
+      "feature": "Completion Rate (Sem 2)",
+      "importance": 31.22
+    },
+    {
+      "feature": "Completion Rate (Sem 1)",
+      "importance": 25.33
+    },
+    {
+      "feature": "Approved Courses (Sem 2)",
+      "importance": 14.79
+    },
+    {
+      "feature": "Approved Courses (Sem 1)",
+      "importance": 14.21
+    },
+    {
+      "feature": "Average Grades (Sem 2)",
+      "importance": 5.75
+    },
+    {
+      "feature": "Tuition Fees Status",
+      "importance": 2.35
+    },
+    {
+      "feature": "Average Grades (Sem 1)",
+      "importance": 2.27
+    },
+    {
+      "feature": "Age of Enrollment",
+      "importance": 2.08
+    },
+    {
+      "feature": "Class Attendance",
+      "importance": 0.99
+    },
+    {
+      "feature": "Weekly Study Hours",
+      "importance": 0.54
+    },
+    {
+      "feature": "Exam Prep Level",
+      "importance": 0.24
+    },
+    {
+      "feature": "Financial Risk",
+      "importance": 0.08
+    },
+    {
+      "feature": "Outstanding Debt",
+      "importance": 0.08
+    },
+    {
+      "feature": "Employment Status",
+      "importance": 0.06
+    },
+    {
+      "feature": "Scholarship Holder",
+      "importance": 0.01
+    },
+    {
+      "feature": "Childcare Responsibilities",
+      "importance": 0.01
+    },
+    {
+      "feature": "Displaced / Refugee Status",
+      "importance": 0.01
+    }
+  ]
+}

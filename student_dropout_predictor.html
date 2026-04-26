@@ -1,0 +1,4243 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retenza - Student Dropout Risk Prediction System</title>
+  <meta name="description"
+    content="AI-powered early warning platform that predicts student dropout risk with 93.39% accuracy and routes students to the right support services." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    /* ============================================================
+       CSS DESIGN SYSTEM
+    ============================================================ */
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --accent: #22d3ee;
+      --accent2: #f472b6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-light: #fca5a5;
+      --bg: #0f0f1a;
+      --surface: #16172b;
+      --surface2: #1e2040;
+      --surface3: #252750;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-faint: #475569;
+      --high-risk: #ef4444;
+      --med-risk: #f59e0b;
+      --low-risk: #10b981;
+      --radius: 14px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --glow-primary: 0 0 40px rgba(99, 102, 241, 0.3);
+      --glow-success: 0 0 30px rgba(16, 185, 129, 0.3);
+      --glow-danger: 0 0 30px rgba(239, 68, 68, 0.3);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -40%;
+      left: -20%;
+      width: 80vw;
+      height: 80vh;
+      background: radial-gradient(ellipse, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      animation: bgFloat 12s ease-in-out infinite alternate;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -30%;
+      right: -10%;
+      width: 60vw;
+      height: 60vh;
+      background: radial-gradient(ellipse, rgba(34, 211, 238, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      animation: bgFloat 16s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes bgFloat {
+      from {
+        transform: translate(0, 0) scale(1);
+      }
+
+      to {
+        transform: translate(40px, 30px) scale(1.1);
+      }
+    }
+
+    /* ---- LAYOUT ---- */
+    .app-container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ---- SIDEBAR ---- */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-logo {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: var(--glow-primary);
+    }
+
+    .logo-text h1 {
+      font-size: 17px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff, var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .accuracy-badge {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .accuracy-badge i {
+      font-size: 9px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-faint);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 8px 12px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 2px;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--primary-light);
+      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.05);
+    }
+
+    .nav-item i {
+      width: 18px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--primary);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .model-info-card {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+    }
+
+    .model-info-card .mi-label {
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .model-info-card .mi-val {
+      font-weight: 700;
+      font-size: 18px;
+      background: linear-gradient(135deg, var(--success), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .model-info-card .mi-sub {
+      color: var(--text-faint);
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    /* ---- MAIN CONTENT ---- */
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 32px;
+      min-height: 100vh;
+    }
+
+    /* ---- PAGE HEADER ---- */
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-header h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .page-header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+
+    .breadcrumb span {
+      color: var(--primary-light);
+    }
+
+    /* ---- CARDS ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .card-title i {
+      color: var(--primary-light);
+    }
+
+    /* ---- STAT CARDS ---- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent-color, var(--primary));
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .stat-info .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .stat-info .value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    .stat-info .sublabel {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 4px;
+    }
+
+    /* ---- GRID LAYOUTS ---- */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* ---- CHART CONTAINERS ---- */
+    .chart-container {
+      position: relative;
+      height: 260px;
+    }
+
+    /* ---- FORM ELEMENTS ---- */
+    .form-section {
+      margin-bottom: 28px;
+    }
+
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .form-group select option {
+      background: var(--surface2);
+    }
+
+    .form-hint {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+
+    /* ---- BUTTONS ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 25px rgba(99, 102, 241, 0.55);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--success), #059669);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger), #dc2626);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary-light);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .btn-lg {
+      padding: 14px 32px;
+      font-size: 16px;
+    }
+
+    .btn-full {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* ---- RISK BADGE ---- */
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .risk-high {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--high-risk);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .risk-medium {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--med-risk);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .risk-low {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--low-risk);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* ---- RISK RESULT CARD ---- */
+    #result-container {
+      display: none;
+    }
+
+    .result-hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .result-hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .result-student-info h3 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .result-student-info .sid {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .result-score-ring {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ring-wrapper {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .ring-wrapper svg {
+      width: 120px;
+      height: 120px;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: var(--surface2);
+      stroke-width: 10;
+    }
+
+    .ring-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.2s ease;
+    }
+
+    .ring-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .ring-center .score-num {
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .ring-center .score-label {
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-top: 2px;
+    }
+
+    .risk-level-label {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 10px;
+      height: 10px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 1s ease;
+    }
+
+    /* Risk factors list */
+    .factors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .factor-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-radius: 8px;
+      border-left: 3px solid transparent;
+      font-size: 13px;
+    }
+
+    .factor-item.sev-high {
+      border-left-color: var(--high-risk);
+    }
+
+    .factor-item.sev-medium {
+      border-left-color: var(--med-risk);
+    }
+
+    .factor-item.sev-low {
+      border-left-color: var(--low-risk);
+    }
+
+    .factor-icon {
+      font-size: 15px;
+    }
+
+    .factor-name {
+      color: var(--text);
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .factor-sev {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .sev-badge-high {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--high-risk);
+    }
+
+    .sev-badge-medium {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--med-risk);
+    }
+
+    .sev-badge-low {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--low-risk);
+    }
+
+    /* Intervention cards */
+    .intervention-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .intervention-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s;
+    }
+
+    .intervention-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .int-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .int-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .int-dept {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .int-contact {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .int-actions {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .int-actions li {
+      margin-bottom: 3px;
+      padding-left: 4px;
+    }
+
+    .int-btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ---- BULK UPLOAD ---- */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 50px 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: var(--surface2);
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .drop-zone i {
+      font-size: 48px;
+      color: var(--text-faint);
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .drop-zone .dz-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .drop-zone .dz-sub {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    /* ---- TABLE ---- */
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th:hover {
+      color: var(--primary-light);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: var(--surface2);
+    }
+
+    tbody td {
+      padding: 11px 14px;
+      color: var(--text);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    /* ---- HISTORY ---- */
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .history-item:hover {
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .history-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .history-info {
+      flex: 1;
+    }
+
+    .history-info .hname {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .history-info .htime {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .history-score {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    /* ---- SEARCH BAR ---- */
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+    }
+
+    .search-bar i {
+      color: var(--text-faint);
+    }
+
+    .search-bar input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      flex: 1;
+    }
+
+    /* ---- TOAST ---- */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast-msg {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastIn 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .toast-msg.success {
+      border-left: 3px solid var(--success);
+      color: var(--success);
+    }
+
+    .toast-msg.error {
+      border-left: 3px solid var(--danger);
+      color: var(--danger);
+    }
+
+    .toast-msg.info {
+      border-left: 3px solid var(--primary);
+      color: var(--primary-light);
+    }
+
+    @keyframes toastIn {
+      from {
+        transform: translateX(40px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* ---- FEATURE IMPORTANCE ---- */
+    .feature-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .feature-bar .fb-label {
+      width: 200px;
+      flex-shrink: 0;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .feature-bar .fb-track {
+      flex: 1;
+      background: var(--surface2);
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .feature-bar .fb-fill {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+
+    .feature-bar .fb-pct {
+      width: 42px;
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ---- SERVICE CARDS ---- */
+    .service-card {
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .service-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .service-info .si-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .service-info .si-email {
+      font-size: 11px;
+      color: var(--primary-light);
+    }
+
+    .service-info .si-desc {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 3px;
+    }
+
+    /* ---- TABS ---- */
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* ---- LOADING SPINNER ---- */
+    .loading-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 15, 26, 0.7);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 20px 16px;
+      }
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .hamburger {
+        display: flex !important;
+      }
+    }
+
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 200;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 18px;
+    }
+
+    /* ---- MISC ---- */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    .text-muted {
+      color: var(--text-muted);
+    }
+
+    .text-xs {
+      font-size: 12px;
+    }
+
+    .mt-4 {
+      margin-top: 16px;
+    }
+
+    .mt-6 {
+      margin-top: 24px;
+    }
+
+    .mb-4 {
+      margin-bottom: 16px;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .gap-3 {
+      gap: 12px;
+    }
+
+    .justify-between {
+      justify-content: space-between;
+    }
+
+    .flex-wrap {
+      flex-wrap: wrap;
+    }
+
+    /* Gradient text utiltiy */
+    .grad-text {
+      background: linear-gradient(135deg, var(--primary-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: var(--text-faint);
+    }
+
+    .empty-state i {
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* Tab selector inside predict page */
+    .predict-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface2);
+      border-radius: 10px;
+      margin-bottom: 24px;
+      width: fit-content;
+    }
+
+    .ptab {
+      padding: 8px 18px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .ptab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* ---- FIELD INFO TOOLTIP ---- */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 50%;
+      font-size: 8px;
+      color: var(--primary-light);
+      cursor: help;
+      flex-shrink: 0;
+      margin-left: 5px;
+      vertical-align: middle;
+      transition: background 0.2s;
+    }
+
+    .info-tip:hover {
+      background: rgba(99, 102, 241, 0.25);
+    }
+
+    .info-tip .tip-text {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #cbd5e1;
+      width: 230px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      transform: translateX(-50%) translateY(4px);
+      z-index: 999;
+      line-height: 1.55;
+      white-space: normal;
+      pointer-events: none;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .info-tip:hover .tip-text {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Tooltip arrow */
+    .info-tip .tip-text::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(99, 102, 241, 0.3);
+    }
+
+    /* Keep tooltip inside viewport on edge labels */
+    .form-group:first-child .info-tip .tip-text,
+    .form-group:nth-child(1) .info-tip .tip-text {
+      left: 0;
+      transform: translateX(0);
+    }
+
+    .form-group:first-child .info-tip .tip-text::after,
+    .form-group:nth-child(1) .info-tip .tip-text::after {
+      left: 12px;
+    }
+
+    /* ---- MID-TERM CALCULATOR ---- */
+    .midterm-calc {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 6px;
+    }
+
+    .midterm-inputs {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .midterm-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .midterm-field input {
+      margin-bottom: 0;
+    }
+
+    .midterm-field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .midterm-divider {
+      font-size: 18px;
+      color: var(--text-faint);
+      padding-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .midterm-result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 80px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 10px;
+      padding: 10px 14px;
+      transition: all 0.3s;
+    }
+
+    .midterm-result.result-good {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .midterm-result.result-medium {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .midterm-result.result-bad {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .midterm-pct {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary-light);
+      line-height: 1;
+      transition: color 0.3s;
+    }
+
+    .midterm-result.result-good .midterm-pct {
+      color: var(--success);
+    }
+
+    .midterm-result.result-medium .midterm-pct {
+      color: var(--warning);
+    }
+
+    .midterm-result.result-bad .midterm-pct {
+      color: var(--danger);
+    }
+
+    .midterm-pct-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--surface3);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-dark);
+    }
+
+    /* ---- PHASE SECTION REVEAL ---- */
+    .phase-reveal {
+      animation: phaseIn 0.35s ease;
+    }
+
+    @keyframes phaseIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ---- PHASE LABEL BADGE ---- */
+    .phase-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary-light);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* ---- YEAR SUBSECTION ---- */
+    .year-subsection {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .year-subsection-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .year-subsection-title i {
+      color: var(--accent);
+    }
+
+    /* ---- SGPA SCALE HINT ---- */
+    .sgpa-hint {
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ---- YES/NO TOGGLE ---- */
+    .toggle-group {
+      display: flex;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+
+    .toggle-btn {
+      padding: 9px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      background: var(--surface2);
+      color: var(--text-muted);
+      border: none;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toggle-btn:first-child {
+      border-right: 1px solid var(--border);
+    }
+
+    .toggle-btn:hover {
+      background: var(--surface3);
+      color: var(--text);
+    }
+
+    .toggle-btn.yes-active {
+      background: rgba(16, 185, 129, 0.18);
+      color: var(--success);
+    }
+
+    .toggle-btn.no-active {
+      background: rgba(239, 68, 68, 0.18);
+      color: var(--danger);
+    }
+
+    /* ---- BACKLOG ALERT ---- */
+    .backlog-alert {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 10px;
+      color: var(--warning);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .backlog-alert i {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ---- BACKLOG RISK INDICATOR ---- */
+    .backlog-risk-bar {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .risk-meter-track {
+      flex: 1;
+      height: 6px;
+      background: var(--surface3);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .risk-meter-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.4s ease, background 0.4s ease;
+    }
+
+    /* ---- CGPA BADGE ---- */
+    .cgpa-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    .sgpa-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary-light);
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Hamburger for mobile -->
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+    <i class="fa fa-bars"></i>
+  </button>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <div class="app-container">
+    <!-- ============================================================
+       SIDEBAR
+  ============================================================ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-badge">
+          <div class="logo-icon">🎓</div>
+          <div class="logo-text">
+            <h1>Retenza</h1>
+            <span>Dropout Risk Predictor</span>
+          </div>
+        </div>
+        <div class="accuracy-badge">
+          <i class="fa fa-circle-check"></i>
+          93.39% Model Accuracy
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+          <i class="fa fa-chart-pie"></i>
+          Dashboard
+        </div>
+        <div class="nav-item" onclick="navigate('predict')" id="nav-predict">
+          <i class="fa fa-brain"></i>
+          Predict Risk
+        </div>
+        <div class="nav-item" onclick="navigate('bulk')" id="nav-bulk">
+          <i class="fa fa-upload"></i>
+          Bulk Upload
+        </div>
+        <div class="nav-section-label" style="margin-top:12px;">Analytics</div>
+        <div class="nav-item" onclick="navigate('history')" id="nav-history">
+          <i class="fa fa-clock-rotate-left"></i>
+          History
+          <span class="nav-badge" id="history-count">0</span>
+        </div>
+        <div class="nav-item" onclick="navigate('model')" id="nav-model">
+          <i class="fa fa-microchip"></i>
+          Model Info
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="model-info-card">
+          <div class="mi-label">Random Forest</div>
+          <div class="mi-val">93.39%</div>
+          <div class="mi-sub">AUC: 0.9723 · 3,630 Students</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================================================
+       MAIN CONTENT
+  ============================================================ -->
+    <main class="main-content">
+
+      <!-- ========== DASHBOARD ========== -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="breadcrumb"><i class="fa fa-home"></i> <span>Dashboard</span></div>
+          <h2>Dashboard Overview <span class="grad-text">Analytics</span></h2>
+          <p>Real-time insights into student dropout risk across your institution.</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card" style="--accent-color: var(--primary)">
+            <div class="stat-icon" style="background:rgba(99,102,241,0.15); color:var(--primary-light)">
+              <i class="fa fa-users"></i>
+            </div>
+            <div class="stat-info">
+              <div class="label">Total Students</div>
+              <div class="value" id="stat-total">0</div>
+              <div class="sublabel">Assessed so far</div>
+            </div>
+          </div>
+          <div class="stat-card" style="--accent-color: var(--danger)">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.15); color:var(--danger)">
+              <i class="fa fa-triangle-exclamation"></i>
+            </div>
+            <div class="stat-info">
+              <div class="label">High Risk</div>
+              <div class="value" id="stat-high">0</div>
+              <div class="sublabel">Need immediate attention</div>
+            </div>
+          </div>
+          <div class="stat-card" style="--accent-color: var(--warning)">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15); color:var(--warning)">
+              <i class="fa fa-circle-exclamation"></i>
+            </div>
+            <div class="stat-info">
+              <div class="label">Medium Risk</div>
+              <div class="value" id="stat-med">0</div>
+              <div class="sublabel">Monitor & support</div>
+            </div>
+          </div>
+          <div class="stat-card" style="--accent-color: var(--success)">
+            <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:var(--success)">
+              <i class="fa fa-circle-check"></i>
+            </div>
+            <div class="stat-info">
+              <div class="label">Low Risk</div>
+              <div class="value" id="stat-low">0</div>
+              <div class="sublabel">On track, normal support</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid-2 mb-4">
+          <div class="card">
+            <div class="card-title"><i class="fa fa-chart-pie"></i> Risk Distribution</div>
+            <div class="chart-container">
+              <canvas id="riskPieChart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="fa fa-chart-bar"></i> Assessment History (Last 10)</div>
+            <div class="chart-container">
+              <canvas id="historyBarChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature Importance + Services -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title"><i class="fa fa-star"></i> Top Predictive Features</div>
+            <div id="feature-importance-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="fa fa-hand-holding-heart"></i> Support Services</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div class="service-card">
+                <div class="service-icon" style="background:rgba(99,102,241,0.15); color:var(--primary-light)"><i
+                    class="fa fa-book"></i></div>
+                <div class="service-info">
+                  <div class="si-name">Academic Support</div>
+                  <div class="si-email">admissions@iilm.edu</div>
+                  <div class="si-desc">Tutoring, advisors, study groups</div>
+                </div>
+              </div>
+              <div class="service-card">
+                <div class="service-icon" style="background:rgba(16,185,129,0.15); color:var(--success)"><i
+                    class="fa fa-dollar-sign"></i></div>
+                <div class="service-info">
+                  <div class="si-name">Financial Aid Office</div>
+                  <div class="si-email">finance.gn@iilm.edu</div>
+                  <div class="si-desc">Scholarships, emergency aid, payment plans</div>
+                </div>
+              </div>
+              <div class="service-card">
+                <div class="service-icon" style="background:rgba(245,158,11,0.15); color:var(--warning)"><i
+                    class="fa fa-comments"></i></div>
+                <div class="service-info">
+                  <div class="si-name">Student Counseling</div>
+                  <div class="si-email">studentsupport@iilm.edu</div>
+                  <div class="si-desc">Time management, peer mentoring</div>
+                </div>
+              </div>
+              <div class="service-card">
+                <div class="service-icon" style="background:rgba(244,114,182,0.15); color:var(--accent2)"><i
+                    class="fa fa-heart-pulse"></i></div>
+                <div class="service-info">
+                  <div class="si-name">Wellness Center</div>
+                  <div class="si-email">studentsupport.gn@iilm.edu</div>
+                  <div class="si-desc">Personal support, wellness consultation</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PREDICT ========== -->
+      <div class="page" id="page-predict">
+        <div class="page-header">
+          <div class="breadcrumb"><i class="fa fa-home"></i> <span>Predict Risk</span></div>
+          <h2>Individual Student <span class="grad-text">Assessment</span></h2>
+          <p>Enter student data to generate an AI-powered dropout risk prediction.</p>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+
+          <!-- ── PHASE 1: STUDENT IDENTITY ── -->
+          <div class="form-section">
+            <div class="phase-label"><i class="fa fa-circle-dot"></i> Phase 1</div>
+            <div class="form-section-title"><i class="fa fa-id-card"></i> Student Identity</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Course / Program</label>
+                <select id="f-course" onchange="updateCourse()">
+                  <option value="">-- Select Course --</option>
+                  <optgroup label="Engineering">
+                    <option value="B.Tech CSE" data-years="4">B.Tech &ndash; Computer Science (CSE)</option>
+                    <option value="B.Tech ECE" data-years="4">B.Tech &ndash; Electronics &amp; Communication (ECE)
+                    </option>
+                    <option value="B.Tech ME" data-years="4">B.Tech &ndash; Mechanical Engineering (ME)</option>
+                    <option value="B.Tech Civil" data-years="4">B.Tech &ndash; Civil Engineering</option>
+                    <option value="B.Tech IT" data-years="4">B.Tech &ndash; Information Technology (IT)</option>
+                    <option value="B.Tech AI/ML" data-years="4">B.Tech &ndash; AI &amp; Machine Learning</option>
+                  </optgroup>
+                  <optgroup label="Management">
+                    <option value="MBA General" data-years="2">MBA &ndash; General Management</option>
+                    <option value="MBA Marketing" data-years="2">MBA &ndash; Marketing</option>
+                    <option value="MBA Finance" data-years="2">MBA &ndash; Finance</option>
+                    <option value="MBA HR" data-years="2">MBA &ndash; Human Resources</option>
+                    <option value="MBA Operations" data-years="2">MBA &ndash; Operations</option>
+                    <option value="MBA Business Analytics" data-years="2">MBA &ndash; Business Analytics</option>
+                  </optgroup>
+                  <optgroup label="Commerce &amp; Business">
+                    <option value="B.Com (Hons)" data-years="3">B.Com (Hons)</option>
+                    <option value="BBA" data-years="3">BBA &ndash; Bachelor of Business Administration</option>
+                  </optgroup>
+                  <optgroup label="Computer Applications">
+                    <option value="BCA" data-years="3">BCA &ndash; Bachelor of Computer Applications</option>
+                    <option value="MCA" data-years="3">MCA &ndash; Master of Computer Applications</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option value="Other" data-years="4">Other / Not Listed</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Academic Year</label>
+                <select id="f-acyear" onchange="updateAcademicYear()" disabled>
+                  <option value="">-- Select Course First --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Section / Class</label>
+                <input type="text" id="f-section" placeholder="e.g. A, B, Section 1..." />
+              </div>
+            </div>
+          </div>
+
+          <!-- ── PHASE 2: YEAR-SPECIFIC ACADEMIC HISTORY ── -->
+          <div class="form-section" id="phase2-section" style="display:none;">
+            <div class="phase-label"><i class="fa fa-circle-dot"></i> Phase 2</div>
+            <div class="form-section-title">
+              <i class="fa fa-graduation-cap"></i> Academic History
+              <span style="margin-left:auto; display:flex; gap:6px;">
+                <span class="sgpa-badge">SGPA</span>
+                <span class="cgpa-badge">CGPA</span>
+                <span style="font-size:11px; font-weight:400; color:var(--text-faint);">Scale: 1.0 &ndash; 10.0</span>
+              </span>
+            </div>
+
+            <!-- 1st Year -->
+            <div id="year1-fields" style="display:none;">
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-1"></i> 1st Year Semesters</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Semester 1 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa1" placeholder="e.g. 7.5" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                    <div class="sgpa-hint"><i class="fa fa-circle-info"></i> Passing threshold: 5.0 | Good: &ge;7.0
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Semester 2 &ndash; SGPA <span class="sgpa-badge">SGPA</span> <span
+                        style="font-size:10px; color:var(--text-faint);">(Optional)</span></label>
+                    <input type="number" id="f-sgpa2" placeholder="e.g. 7.0" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                    <div class="sgpa-hint"><i class="fa fa-circle-info"></i> Leave blank if not yet available</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2nd Year -->
+            <div id="year2-fields" style="display:none;">
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-1"></i> 1st Year Summary</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>1st Year Overall &ndash; CGPA <span class="cgpa-badge">CGPA</span></label>
+                    <input type="number" id="f-cgpa1" placeholder="e.g. 7.2" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                </div>
+              </div>
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-2"></i> 2nd Year Semesters</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Semester 3 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa3" placeholder="e.g. 6.8" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                  <div class="form-group">
+                    <label>Semester 4 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa4" placeholder="e.g. 7.1" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3rd Year -->
+            <div id="year3-fields" style="display:none;">
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-clock-rotate-left"></i> Previous Years Summary</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>1st Year &ndash; CGPA <span class="cgpa-badge">CGPA</span></label>
+                    <input type="number" id="f-cgpa1y3" placeholder="e.g. 7.2" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                  <div class="form-group">
+                    <label>2nd Year &ndash; CGPA <span class="cgpa-badge">CGPA</span></label>
+                    <input type="number" id="f-cgpa2" placeholder="e.g. 6.9" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                </div>
+              </div>
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-3"></i> 3rd Year Semesters</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Semester 5 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa5" placeholder="e.g. 6.5" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                  <div class="form-group">
+                    <label>Semester 6 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa6" placeholder="e.g. 6.8" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4th Year -->
+            <div id="year4-fields" style="display:none;">
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-clock-rotate-left"></i> Previous Years Summary</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>1st Year &ndash; CGPA <span class="cgpa-badge">CGPA</span></label>
+                    <input type="number" id="f-cgpa1y4" placeholder="e.g. 7.2" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                  <div class="form-group">
+                    <label>2nd Year &ndash; CGPA <span class="cgpa-badge">CGPA</span></label>
+                    <input type="number" id="f-cgpa2y4" placeholder="e.g. 6.9" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                  <div class="form-group">
+                    <label>3rd Year &ndash; CGPA <span class="cgpa-badge">CGPA</span></label>
+                    <input type="number" id="f-cgpa3" placeholder="e.g. 6.5" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                </div>
+              </div>
+              <div class="year-subsection">
+                <div class="year-subsection-title"><i class="fa fa-4"></i> 4th Year Semesters</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Semester 7 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa7" placeholder="e.g. 7.0" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                  <div class="form-group">
+                    <label>Semester 8 &ndash; SGPA <span class="sgpa-badge">SGPA</span></label>
+                    <input type="number" id="f-sgpa8" placeholder="e.g. 7.2" min="1" max="10" step="0.01"
+                      oninput="updateSGPALive()" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── PHASE 3: BACKLOG & SUBJECT ANALYSIS ── -->
+          <div class="form-section" id="phase3-section" style="display:none;">
+            <div class="phase-label"><i class="fa fa-circle-dot"></i> Phase 3</div>
+            <div class="form-section-title"><i class="fa fa-list-check"></i> Backlog &amp; Subject Analysis</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Total Subjects in Current / Previous Academic Year</label>
+                <input type="number" id="f-total-subjects" placeholder="e.g. 8" min="1" max="30"
+                  oninput="updateBacklogRisk()" />
+                <div class="form-hint">Total course load for the academic year</div>
+              </div>
+              <div class="form-group">
+                <label>Did you pass in all subjects?</label>
+                <div class="toggle-group" id="pass-toggle-group">
+                  <button type="button" class="toggle-btn yes-active" id="toggle-yes" onclick="setPassToggle('yes')">
+                    <i class="fa fa-check"></i> Yes
+                  </button>
+                  <button type="button" class="toggle-btn" id="toggle-no" onclick="setPassToggle('no')">
+                    <i class="fa fa-times"></i> No
+                  </button>
+                </div>
+                <input type="hidden" id="f-passed-all" value="yes" />
+              </div>
+            </div>
+
+            <!-- Conditional backlog entry -->
+            <div id="backlog-entry" style="display:none; margin-top:16px;" class="phase-reveal">
+              <div class="backlog-alert">
+                <i class="fa fa-triangle-exclamation"></i>
+                <span>Please enter the number of subjects you failed or could not clear:</span>
+              </div>
+              <div class="form-grid" style="margin-top:14px;">
+                <div class="form-group">
+                  <label>Number of Subjects Failed / Not Passed</label>
+                  <input type="number" id="f-backlogs" placeholder="e.g. 2" min="1" max="30"
+                    oninput="updateBacklogRisk()" />
+                  <!-- Live risk meter -->
+                  <div class="backlog-risk-bar" id="backlog-risk-bar" style="display:none;">
+                    <div class="risk-meter-track">
+                      <div class="risk-meter-fill" id="backlog-meter-fill" style="width:0%"></div>
+                    </div>
+                    <span id="backlog-pct-label" style="font-weight:700; min-width:36px; text-align:right;"></span>
+                  </div>
+                  <div class="form-hint" id="backlog-risk-hint" style="margin-top:6px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── STUDENT INFO (Phase 4 context) ── -->
+          <div class="form-section">
+            <div class="phase-label"><i class="fa fa-circle-dot"></i> Phase 4</div>
+            <div class="form-section-title"><i class="fa fa-user"></i> Student Information</div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Student Name</label>
+                <input type="text" id="f-name" placeholder="e.g. John Doe" />
+              </div>
+              <div class="form-group">
+                <label>Student ID</label>
+                <input type="text" id="f-sid" placeholder="e.g. 2025001" />
+              </div>
+              <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="f-age" placeholder="18-35" min="17" max="60" value="20" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Academic Performance (revised) -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa fa-graduation-cap"></i> Academic Performance</div>
+            <div class="form-grid">
+              <!-- Mid-term marks calculator -->
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Mid-term Examination Marks
+                  <span style="color:var(--text-faint); font-size:11px;">— enter your marks and we will calculate the
+                    percentage for you</span>
+                </label>
+                <div class="midterm-calc">
+                  <div class="midterm-inputs">
+                    <div class="midterm-field">
+                      <span class="midterm-field-label">Marks Obtained <span
+                          style="font-size:10px; color:var(--text-faint);">(all subjects combined)</span></span>
+                      <input type="number" id="f-midterm-obtained" placeholder="e.g. 84" min="0"
+                        oninput="calcMidterm()" />
+                    </div>
+                    <div class="midterm-divider"><i class="fa fa-divide"></i></div>
+                    <div class="midterm-field">
+                      <span class="midterm-field-label">Total Marks <span
+                          style="font-size:10px; color:var(--text-faint);">(max marks of all subjects)</span></span>
+                      <input type="number" id="f-midterm-total" placeholder="e.g. 120" min="1"
+                        oninput="calcMidterm()" />
+                    </div>
+                    <div class="midterm-divider" style="font-size:13px; color:var(--text-faint);">&#215; 100</div>
+                    <div class="midterm-result" id="midterm-result">
+                      <div class="midterm-pct" id="midterm-pct-display">&mdash;</div>
+                      <div class="midterm-pct-label">% Score</div>
+                    </div>
+                  </div>
+                  <div class="form-hint" id="midterm-hint" style="margin-top:8px;">Enter both values above — the
+                    percentage will be calculated automatically.</div>
+                </div>
+                <!-- Hidden field feeding the risk engine -->
+                <input type="hidden" id="f-ia" value="" />
+              </div>
+              <div class="form-group">
+                <label>Appeared in Last Semester Exam?</label>
+                <div class="toggle-group">
+                  <button type="button" class="toggle-btn yes-active" id="toggle-exam-yes"
+                    onclick="setExamToggle('yes')">
+                    <i class="fa fa-check"></i> Yes
+                  </button>
+                  <button type="button" class="toggle-btn" id="toggle-exam-no" onclick="setExamToggle('no')">
+                    <i class="fa fa-times"></i> No
+                  </button>
+                </div>
+                <input type="hidden" id="f-exam-appeared" value="yes" />
+                <div class="form-hint">Absent from final exam is a strong dropout signal</div>
+              </div>
+              <div class="form-group">
+                <label>Assignment Submission Rate</label>
+                <select id="f-assignment">
+                  <option value="4">Always &mdash; submits all on time</option>
+                  <option value="3" selected>Mostly &mdash; occasional delays</option>
+                  <option value="2">Rarely &mdash; frequently misses</option>
+                  <option value="1">Never &mdash; does not submit</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Extracurricular & Sports -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa fa-trophy"></i> Extracurricular &amp; Sports</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Extracurricular Activities</label>
+                <div class="toggle-group">
+                  <button type="button" class="toggle-btn yes-active" id="toggle-extra-yes"
+                    onclick="setExtraToggle('yes')">
+                    <i class="fa fa-check"></i> Yes
+                  </button>
+                  <button type="button" class="toggle-btn" id="toggle-extra-no" onclick="setExtraToggle('no')">
+                    <i class="fa fa-times"></i> No
+                  </button>
+                </div>
+                <input type="hidden" id="f-extracurricular" value="yes" />
+                <div class="form-hint">Clubs, cultural events, volunteering, etc.</div>
+              </div>
+              <div class="form-group">
+                <label>Sports Participation</label>
+                <div class="toggle-group">
+                  <button type="button" class="toggle-btn yes-active" id="toggle-sports-yes"
+                    onclick="setSportsToggle('yes')">
+                    <i class="fa fa-check"></i> Yes
+                  </button>
+                  <button type="button" class="toggle-btn" id="toggle-sports-no" onclick="setSportsToggle('no')">
+                    <i class="fa fa-times"></i> No
+                  </button>
+                </div>
+                <input type="hidden" id="f-sports" value="yes" />
+                <div class="form-hint">Any sport at institute, inter-college or higher level</div>
+              </div>
+              <div class="form-group">
+                <label>Faculty / Mentor Contact</label>
+                <select id="f-mentor">
+                  <option value="3">Regular &mdash; frequent check-ins</option>
+                  <option value="2" selected>Occasional &mdash; when needed</option>
+                  <option value="1">Rare &mdash; avoids contact</option>
+                  <option value="0">None &mdash; no contact at all</option>
+                </select>
+                <div class="form-hint">Students who disconnect from faculty are at higher risk</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa fa-dollar-sign"></i> Financial Status</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Tuition Fees Status</label>
+                <select id="f-tuition">
+                  <option value="1">Up to Date &mdash; Fees Paid</option>
+                  <option value="0">Not Up to Date &mdash; Fees Pending</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Financial Risk</label>
+                <select id="f-finrisk">
+                  <option value="0">No Financial Risk</option>
+                  <option value="1">Has Financial Risk</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Scholarship Holder</label>
+                <select id="f-scholarship">
+                  <option value="0">No Scholarship</option>
+                  <option value="1">Has Scholarship</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Outstanding Debt</label>
+                <select id="f-debt">
+                  <option value="0">No Debt</option>
+                  <option value="1">Has Outstanding Debt</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Engagement -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa fa-clock"></i> Engagement & Behavior</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Class Attendance Rate</label>
+                <select id="f-attendance">
+                  <option value="4">Excellent (>90%)</option>
+                  <option value="3" selected>Good (75&ndash;90%)</option>
+                  <option value="2">Fair (60&ndash;74%)</option>
+                  <option value="1">Poor (&lt;60%)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Weekly Study Hours</label>
+                <select id="f-study">
+                  <option value="4">Heavy (&gt;30 hrs)</option>
+                  <option value="3" selected>Moderate (10&ndash;20 hrs)</option>
+                  <option value="2">Light (5&ndash;10 hrs)</option>
+                  <option value="1">Very Light (&lt;5 hrs)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Exam Preparation Level</label>
+                <select id="f-exam">
+                  <option value="3">High &ndash; systematic study</option>
+                  <option value="2" selected>Medium &ndash; regular revision</option>
+                  <option value="1">Low &ndash; minimal prep</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personal -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa fa-person"></i> Personal Circumstances</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Employment Status</label>
+                <select id="f-employed">
+                  <option value="0">Not Working</option>
+                  <option value="1">Part-time Worker</option>
+                  <option value="2">Full-time Worker</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Childcare Responsibilities</label>
+                <select id="f-childcare">
+                  <option value="0">No Childcare</option>
+                  <option value="1">Has Childcare Responsibilities</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Displaced / Refugee Status</label>
+                <select id="f-displaced">
+                  <option value="0">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 flex-wrap">
+            <button class="btn btn-primary btn-lg" onclick="runPrediction()" id="predict-btn">
+              <i class="fa fa-bolt"></i> Generate Risk Assessment
+            </button>
+            <button class="btn btn-outline" onclick="clearForm()">
+              <i class="fa fa-eraser"></i> Clear Form
+            </button>
+            <button class="btn btn-outline" onclick="fillSampleData()">
+              <i class="fa fa-flask"></i> Fill Sample Data
+            </button>
+          </div>
+        </div>
+
+        <!-- RESULT AREA -->
+        <div id="result-container">
+          <!-- Hero result card -->
+          <div class="result-hero" id="result-hero">
+            <div class="result-hero-top">
+              <div class="result-student-info">
+                <h3 id="res-name">&mdash;</h3>
+                <div class="sid" id="res-sid">&mdash;</div>
+                <div style="margin-top:10px;" id="res-badge"></div>
+              </div>
+              <div class="result-score-ring">
+                <div class="ring-wrapper">
+                  <svg viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="50" />
+                    <circle class="ring-fill" cx="60" cy="60" r="50" id="ring-fill-circle" stroke-dasharray="314"
+                      stroke-dashoffset="314" />
+                  </svg>
+                  <div class="ring-center">
+                    <div class="score-num" id="res-score-num">0%</div>
+                    <div class="score-label">Risk Score</div>
+                  </div>
+                </div>
+                <div class="risk-level-label" id="res-risk-label">&mdash;</div>
+              </div>
+            </div>
+
+            <!-- Score breakdown bars -->
+            <div id="score-breakdown"></div>
+          </div>
+
+          <!-- Risk factors -->
+          <div class="grid-2 mb-4">
+            <div class="card">
+              <div class="card-title"><i class="fa fa-triangle-exclamation"></i> Identified Risk Factors</div>
+              <div class="factors-list" id="factors-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-title"><i class="fa fa-chart-bar"></i> Score Breakdown</div>
+              <div class="chart-container" style="height:200px;">
+                <canvas id="scoreRadarChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interventions -->
+          <div class="card mb-4">
+            <div class="card-title"><i class="fa fa-hand-holding-heart"></i> Recommended Interventions</div>
+            <div class="intervention-grid" id="intervention-grid"></div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card">
+            <div class="card-title"><i class="fa fa-download"></i> Export & Actions</div>
+            <div class="flex gap-3 flex-wrap">
+              <button class="btn btn-primary" onclick="exportPDF()"><i class="fa fa-file-pdf"></i> Export PDF
+                Report</button>
+              <button class="btn btn-success" onclick="exportJSON()"><i class="fa fa-code"></i> Download JSON</button>
+              <button class="btn btn-outline" onclick="saveToHistory()"><i class="fa fa-bookmark"></i> Save to
+                History</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== BULK UPLOAD ========== -->
+      <div class="page" id="page-bulk">
+        <div class="page-header">
+          <div class="breadcrumb"><i class="fa fa-home"></i> <span>Bulk Upload</span></div>
+          <h2>Bulk Student <span class="grad-text">Analysis</span></h2>
+          <p>Upload an Excel or CSV file to assess multiple students at once.</p>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-title"><i class="fa fa-upload"></i> Upload File</div>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+            ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+            <i class="fa fa-cloud-arrow-up"></i>
+            <div class="dz-title">Drag & drop your file here</div>
+            <div class="dz-sub">or click to browse Â· Supports .xlsx, .xls, .csv</div>
+          </div>
+          <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)" />
+
+          <div class="mt-4">
+            <div class="card-title" style="margin-bottom:10px;"><i class="fa fa-table"></i> Expected CSV / Excel Format
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>student_name</th>
+                    <th>student_id</th>
+                    <th>completion_rate_1</th>
+                    <th>completion_rate_2</th>
+                    <th>grade_1sem</th>
+                    <th>grade_2sem</th>
+                    <th>approved_1sem</th>
+                    <th>approved_2sem</th>
+                    <th>tuition_fees</th>
+                    <th>financial_risk</th>
+                    <th>attendance</th>
+                    <th>study_hrs</th>
+                    <th>age</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>John Doe</td>
+                    <td>2025001</td>
+                    <td>0.85</td>
+                    <td>0.70</td>
+                    <td>14.5</td>
+                    <td>12.0</td>
+                    <td>5</td>
+                    <td>4</td>
+                    <td>1</td>
+                    <td>0</td>
+                    <td>3</td>
+                    <td>3</td>
+                    <td>19</td>
+                  </tr>
+                  <tr>
+                    <td>Jane Smith</td>
+                    <td>2025002</td>
+                    <td>0.40</td>
+                    <td>0.30</td>
+                    <td>9.5</td>
+                    <td>8.0</td>
+                    <td>2</td>
+                    <td>2</td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>2</td>
+                    <td>1</td>
+                    <td>22</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-4">
+              <button class="btn btn-outline btn-sm" onclick="downloadSampleCSV()">
+                <i class="fa fa-download"></i> Download Sample CSV
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Results -->
+        <div id="bulk-results" style="display:none;">
+          <div class="stats-grid" style="grid-template-columns: repeat(3,1fr);">
+            <div class="stat-card" style="--accent-color: var(--primary)">
+              <div class="stat-icon" style="background:rgba(99,102,241,0.15); color:var(--primary-light)"><i
+                  class="fa fa-users"></i></div>
+              <div class="stat-info">
+                <div class="label">Total Analyzed</div>
+                <div class="value" id="bulk-total">0</div>
+              </div>
+            </div>
+            <div class="stat-card" style="--accent-color: var(--danger)">
+              <div class="stat-icon" style="background:rgba(239,68,68,0.15); color:var(--danger)"><i
+                  class="fa fa-triangle-exclamation"></i></div>
+              <div class="stat-info">
+                <div class="label">At-Risk Students</div>
+                <div class="value" id="bulk-risk">0</div>
+              </div>
+            </div>
+            <div class="stat-card" style="--accent-color: var(--success)">
+              <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:var(--success)"><i
+                  class="fa fa-circle-check"></i></div>
+              <div class="stat-info">
+                <div class="label">Low Risk</div>
+                <div class="value" id="bulk-safe">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+              <div class="card-title" style="margin:0"><i class="fa fa-table"></i> Batch Results</div>
+              <div class="flex gap-3">
+                <button class="btn btn-success btn-sm" onclick="exportBulkExcel()">
+                  <i class="fa fa-file-excel"></i> Export Excel
+                </button>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table id="bulk-table">
+                <thead>
+                  <tr>
+                    <th onclick="sortTable('name')">Name &#8597;</th>
+                    <th onclick="sortTable('sid')">ID &#8597;</th>
+                    <th onclick="sortTable('age')">Age &#8597;</th>
+                    <th onclick="sortTable('cr1')">CR Sem1 &#8597;</th>
+                    <th onclick="sortTable('cr2')">CR Sem2 &#8597;</th>
+                    <th onclick="sortTable('g1')">Grade S1 &#8597;</th>
+                    <th onclick="sortTable('g2')">Grade S2 &#8597;</th>
+                    <th onclick="sortTable('ap1')">Appr. S1 &#8597;</th>
+                    <th onclick="sortTable('ap2')">Appr. S2 &#8597;</th>
+                    <th>Tuition</th>
+                    <th>Fin. Risk</th>
+                    <th>Attendance</th>
+                    <th>Study Hrs</th>
+                    <th onclick="sortTable('score')">Risk Score &#8597;</th>
+                    <th>Risk Level</th>
+                    <th>Primary Factor</th>
+                  </tr>
+                </thead>
+                <tbody id="bulk-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== HISTORY ========== -->
+      <div class="page" id="page-history">
+        <div class="page-header">
+          <div class="breadcrumb"><i class="fa fa-home"></i> <span>History</span></div>
+          <h2>Prediction <span class="grad-text">History</span></h2>
+          <p>All previous student assessments and risk evaluations.</p>
+        </div>
+
+        <div class="search-bar">
+          <i class="fa fa-search"></i>
+          <input type="text" id="history-search" placeholder="Search by name or ID..." oninput="filterHistory()" />
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+          <div class="text-muted text-xs" id="history-count-label">No records yet</div>
+          <button class="btn btn-outline btn-sm" onclick="clearHistory()">
+            <i class="fa fa-trash"></i> Clear All
+          </button>
+        </div>
+
+        <div id="history-list"></div>
+      </div>
+
+      <!-- ========== MODEL INFO ========== -->
+      <div class="page" id="page-model">
+        <div class="page-header">
+          <div class="breadcrumb"><i class="fa fa-home"></i> <span>Model Info</span></div>
+          <h2>Machine Learning <span class="grad-text">Model</span></h2>
+          <p>Details about the Random Forest classifier powering this system.</p>
+        </div>
+
+        <div class="grid-2 mb-4">
+          <div class="card">
+            <div class="card-title"><i class="fa fa-microchip"></i> Model Performance</div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr; gap:12px; margin-bottom:0;">
+              <div style="background:var(--surface2); border-radius:10px; padding:14px; text-align:center;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Accuracy</div>
+                <div style="font-size:28px; font-weight:900; color:var(--success);">93.39%</div>
+              </div>
+              <div style="background:var(--surface2); border-radius:10px; padding:14px; text-align:center;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">AUC Score</div>
+                <div style="font-size:28px; font-weight:900; color:var(--accent);">0.9723</div>
+              </div>
+              <div style="background:var(--surface2); border-radius:10px; padding:14px; text-align:center;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Precision</div>
+                <div style="font-size:28px; font-weight:900; color:var(--primary-light);">91.2%</div>
+              </div>
+              <div style="background:var(--surface2); border-radius:10px; padding:14px; text-align:center;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Recall</div>
+                <div style="font-size:28px; font-weight:900; color:var(--accent2);">89.7%</div>
+              </div>
+            </div>
+            <div class="mt-4" style="background:var(--surface2); border-radius:10px; padding:14px; text-align:center;">
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">F1 Score</div>
+              <div style="font-size:32px; font-weight:900;" class="grad-text">90.4%</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="fa fa-database"></i> Training Dataset</div>
+            <div class="chart-container" style="height:220px;">
+              <canvas id="trainingSplitChart"></canvas>
+            </div>
+            <div class="mt-4" style="display:flex; flex-direction:column; gap:8px;">
+              <div class="feature-bar">
+                <div class="fb-label">Total Records</div>
+                <div class="fb-track">
+                  <div class="fb-fill" style="width:100%"></div>
+                </div>
+                <div class="fb-pct">3,630</div>
+              </div>
+              <div class="feature-bar">
+                <div class="fb-label">Training Set (80%)</div>
+                <div class="fb-track">
+                  <div class="fb-fill" style="width:80%"></div>
+                </div>
+                <div class="fb-pct">2,904</div>
+              </div>
+              <div class="feature-bar">
+                <div class="fb-label">Test Set (20%)</div>
+                <div class="fb-track">
+                  <div class="fb-fill" style="width:20%"></div>
+                </div>
+                <div class="fb-pct">726</div>
+              </div>
+              <div class="feature-bar">
+                <div class="fb-label">Dropout Rate</div>
+                <div class="fb-track">
+                  <div class="fb-fill"
+                    style="width:39.15%; background:linear-gradient(90deg, var(--danger), var(--warning))"></div>
+                </div>
+                <div class="fb-pct">39%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-title"><i class="fa fa-star"></i> Feature Importance (Top 15)</div>
+          <div id="model-feature-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><i class="fa fa-layer-group"></i> Feature Categories</div>
+          <div class="grid-3" style="gap:12px;">
+            <div style="background:var(--surface2); border-radius:10px; padding:14px;">
+              <div style="color:var(--primary-light); font-weight:700; margin-bottom:6px; font-size:13px;"><i
+                  class="fa fa-graduation-cap"></i> Academic</div>
+              <div style="color:var(--text-muted); font-size:12px;">20 features</div>
+            </div>
+            <div style="background:var(--surface2); border-radius:10px; padding:14px;">
+              <div style="color:var(--success); font-weight:700; margin-bottom:6px; font-size:13px;"><i
+                  class="fa fa-dollar-sign"></i> Financial</div>
+              <div style="color:var(--text-muted); font-size:12px;">4 features</div>
+            </div>
+            <div style="background:var(--surface2); border-radius:10px; padding:14px;">
+              <div style="color:var(--warning); font-weight:700; margin-bottom:6px; font-size:13px;"><i
+                  class="fa fa-chart-line"></i> Behavioral</div>
+              <div style="color:var(--text-muted); font-size:12px;">11 features</div>
+            </div>
+            <div style="background:var(--surface2); border-radius:10px; padding:14px;">
+              <div style="color:var(--accent2); font-weight:700; margin-bottom:6px; font-size:13px;"><i
+                  class="fa fa-person"></i> Demographics</div>
+              <div style="color:var(--text-muted); font-size:12px;">8 features</div>
+            </div>
+            <div style="background:var(--surface2); border-radius:10px; padding:14px;">
+              <div style="color:var(--accent); font-weight:700; margin-bottom:6px; font-size:13px;"><i
+                  class="fa fa-globe"></i> Socioeconomic</div>
+              <div style="color:var(--text-muted); font-size:12px;">3 features</div>
+            </div>
+            <div style="background:var(--surface2); border-radius:10px; padding:14px;">
+              <div style="color:var(--primary-light); font-weight:700; margin-bottom:6px; font-size:13px;"><i
+                  class="fa fa-flask"></i> Engineered</div>
+              <div style="color:var(--text-muted); font-size:12px;">7 features</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+  <script>
+    'use strict';
+
+    // ================================================================
+    // GLOBAL STATE
+    // ================================================================
+    let predictionHistory = JSON.parse(localStorage.getItem('retenza_history') || '[]');
+    let bulkResults = [];
+    let lastPrediction = null;
+    let chartInstances = {};
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    function navigate(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.getElementById('nav-' + page).classList.add('active');
+      if (window.innerWidth <= 900) closeSidebar();
+      if (page === 'dashboard') renderDashboardCharts();
+      if (page === 'history') renderHistory();
+      if (page === 'model') renderModelCharts();
+      updateHistoryBadge();
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+
+    // ================================================================
+    // FEATURE IMPORTANCE DATA
+    // ================================================================
+    const FEATURES = [
+      { name: 'Completion Rate (Sem 2)', pct: 16.96 },
+      { name: 'Completion Rate (Sem 1)', pct: 13.90 },
+      { name: 'Approved Courses (Sem 2)', pct: 12.78 },
+      { name: 'Average Grades (Sem 2)', pct: 7.65 },
+      { name: 'Average Grades (Sem 1)', pct: 6.80 },
+      { name: 'Financial Risk', pct: 4.14 },
+      { name: 'Tuition Fees Status', pct: 4.14 },
+      { name: 'Class Attendance', pct: 3.60 },
+      { name: 'Approved Courses (Sem 1)', pct: 3.40 },
+      { name: 'Weekly Study Hours', pct: 3.10 },
+      { name: 'Age of Enrollment', pct: 2.90 },
+      { name: 'Scholarship Holder', pct: 2.50 },
+      { name: 'Exam Prep Level', pct: 2.20 },
+      { name: 'Employment Status', pct: 1.80 },
+      { name: 'Outstanding Debt', pct: 1.60 },
+    ];
+
+    function renderFeatureList(containerId, max = 8) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = FEATURES.slice(0, max).map(f => `
+    <div class="feature-bar">
+      <div class="fb-label">${f.name}</div>
+      <div class="fb-track"><div class="fb-fill" style="width:${(f.pct / 17) * 100}%"></div></div>
+      <div class="fb-pct">${f.pct}%</div>
+    </div>
+  `).join('');
+    }
+
+    // ================================================================
+    // DASHBOARD CHARTS
+    // ================================================================
+    function renderDashboardCharts() {
+      updateStatCards();
+      renderPieChart();
+      renderHistoryBarChart();
+      renderFeatureList('feature-importance-list', 6);
+    }
+
+    function updateStatCards() {
+      const total = predictionHistory.length;
+      const high = predictionHistory.filter(p => p.riskLevel === 'High').length;
+      const med = predictionHistory.filter(p => p.riskLevel === 'Medium').length;
+      const low = predictionHistory.filter(p => p.riskLevel === 'Low').length;
+      animCount('stat-total', total);
+      animCount('stat-high', high);
+      animCount('stat-med', med);
+      animCount('stat-low', low);
+    }
+
+    function animCount(id, target) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let cur = 0;
+      const step = Math.ceil(target / 20) || 1;
+      const t = setInterval(() => {
+        cur = Math.min(cur + step, target);
+        el.textContent = cur;
+        if (cur >= target) clearInterval(t);
+      }, 30);
+    }
+
+    function destroyChart(key) {
+      if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; }
+    }
+
+    function renderPieChart() {
+      destroyChart('pie');
+      const high = predictionHistory.filter(p => p.riskLevel === 'High').length;
+      const med = predictionHistory.filter(p => p.riskLevel === 'Medium').length;
+      const low = predictionHistory.filter(p => p.riskLevel === 'Low').length;
+
+      // Demo data if history empty
+      const data = (predictionHistory.length === 0)
+        ? [12, 28, 60]
+        : [high, med, low];
+
+      chartInstances['pie'] = new Chart(document.getElementById('riskPieChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+          datasets: [{
+            data,
+            backgroundColor: ['rgba(239,68,68,0.85)', 'rgba(245,158,11,0.85)', 'rgba(16,185,129,0.85)'],
+            borderColor: ['#ef4444', '#f59e0b', '#10b981'],
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 }, padding: 16 } }
+          },
+          cutout: '65%'
+        }
+      });
+    }
+
+    function renderHistoryBarChart() {
+      destroyChart('bar');
+      const recent = [...predictionHistory].slice(-10);
+      const labels = recent.map(p => p.name.split(' ')[0]);
+      const scores = recent.map(p => p.score);
+
+      chartInstances['bar'] = new Chart(document.getElementById('historyBarChart'), {
+        type: 'bar',
+        data: {
+          labels: labels.length ? labels : ['Demo'],
+          datasets: [{
+            label: 'Risk Score %',
+            data: scores.length ? scores : [42],
+            backgroundColor: (scores.length ? scores : [42]).map(s =>
+              s >= 60 ? 'rgba(239,68,68,0.7)' : s >= 40 ? 'rgba(245,158,11,0.7)' : 'rgba(16,185,129,0.7)'
+            ),
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } },
+            y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, callback: v => v + '%' } }
+          }
+        }
+      });
+    }
+
+    // ================================================================
+    // MODEL PAGE CHARTS
+    // ================================================================
+    function renderModelCharts() {
+      destroyChart('trainSplit');
+      chartInstances['trainSplit'] = new Chart(document.getElementById('trainingSplitChart'), {
+        type: 'pie',
+        data: {
+          labels: ['Training Set (80%)', 'Test Set (20%)'],
+          datasets: [{
+            data: [2904, 726],
+            backgroundColor: ['rgba(99,102,241,0.75)', 'rgba(34,211,238,0.75)'],
+            borderColor: ['#6366f1', '#22d3ee'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } } } }
+        }
+      });
+      renderFeatureList('model-feature-list', 15);
+    }
+
+    // ================================================================
+    // PHASE 1–3 LOGIC
+    // ================================================================
+    function updateCourse() {
+      const courseEl = document.getElementById('f-course');
+      const yearEl = document.getElementById('f-acyear');
+      const selected = courseEl.options[courseEl.selectedIndex];
+      const maxYears = selected ? parseInt(selected.getAttribute('data-years')) || 0 : 0;
+
+      // Reset year dropdown
+      yearEl.innerHTML = '';
+      document.getElementById('phase2-section').style.display = 'none';
+      document.getElementById('phase3-section').style.display = 'none';
+      ['year1-fields', 'year2-fields', 'year3-fields', 'year4-fields'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+
+      if (!courseEl.value || maxYears === 0) {
+        yearEl.innerHTML = '<option value="">-- Select Course First --</option>';
+        yearEl.disabled = true;
+        return;
+      }
+
+      yearEl.disabled = false;
+      const placeholder = document.createElement('option');
+      placeholder.value = ''; placeholder.textContent = '-- Select Year --';
+      yearEl.appendChild(placeholder);
+      const labels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+      for (let i = 1; i <= maxYears; i++) {
+        const opt = document.createElement('option');
+        opt.value = i; opt.textContent = labels[i - 1];
+        yearEl.appendChild(opt);
+      }
+    }
+
+    function updateAcademicYear() {
+      const year = document.getElementById('f-acyear').value;
+      const phase2 = document.getElementById('phase2-section');
+      const phase3 = document.getElementById('phase3-section');
+
+      ['year1-fields', 'year2-fields', 'year3-fields', 'year4-fields'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+
+      if (!year) {
+        phase2.style.display = 'none';
+        phase3.style.display = 'none';
+        return;
+      }
+
+      phase2.style.display = 'block';
+      phase2.className = 'form-section phase-reveal';
+      phase3.style.display = 'block';
+      phase3.className = 'form-section phase-reveal';
+      setTimeout(() => { phase2.className = 'form-section'; phase3.className = 'form-section'; }, 400);
+
+      const fieldsEl = document.getElementById(`year${year}-fields`);
+      if (fieldsEl) {
+        fieldsEl.style.display = 'block';
+        fieldsEl.className = 'phase-reveal';
+        setTimeout(() => { fieldsEl.className = ''; }, 400);
+      }
+    }
+
+    function setPassToggle(val) {
+      document.getElementById('f-passed-all').value = val;
+      const yesBtn = document.getElementById('toggle-yes');
+      const noBtn = document.getElementById('toggle-no');
+      const backlogEntry = document.getElementById('backlog-entry');
+
+      yesBtn.className = 'toggle-btn' + (val === 'yes' ? ' yes-active' : '');
+      noBtn.className = 'toggle-btn' + (val === 'no' ? ' no-active' : '');
+
+      if (val === 'yes') {
+        backlogEntry.style.display = 'none';
+        const bl = document.getElementById('f-backlogs');
+        if (bl) bl.value = '';
+        document.getElementById('backlog-risk-hint').innerHTML = '';
+        document.getElementById('backlog-risk-bar').style.display = 'none';
+      } else {
+        backlogEntry.style.display = 'block';
+      }
+    }
+
+    function updateBacklogRisk() {
+      const total = parseInt(document.getElementById('f-total-subjects').value) || 0;
+      const backlogs = parseInt(document.getElementById('f-backlogs')?.value) || 0;
+      const hint = document.getElementById('backlog-risk-hint');
+      const bar = document.getElementById('backlog-risk-bar');
+      const fill = document.getElementById('backlog-meter-fill');
+      const pctLabel = document.getElementById('backlog-pct-label');
+
+      if (!total || !backlogs || backlogs < 1) {
+        if (bar) bar.style.display = 'none';
+        if (hint) hint.innerHTML = '';
+        return;
+      }
+
+      const pct = Math.min((backlogs / total) * 100, 100);
+      if (bar) bar.style.display = 'flex';
+      if (fill) {
+        fill.style.width = pct + '%';
+        fill.style.background = pct > 33 ? '#ef4444' : pct > 15 ? '#f59e0b' : '#10b981';
+      }
+      if (pctLabel) {
+        pctLabel.textContent = Math.round(pct) + '%';
+        pctLabel.style.color = pct > 33 ? '#ef4444' : pct > 15 ? '#f59e0b' : '#10b981';
+      }
+      if (hint) {
+        if (pct > 33) {
+          hint.innerHTML = '<span style="color:var(--danger); font-weight:600;"><i class="fa fa-triangle-exclamation"></i> High Risk — More than 33% of subjects not cleared</span>';
+        } else if (pct > 15) {
+          hint.innerHTML = '<span style="color:var(--warning); font-weight:600;"><i class="fa fa-circle-exclamation"></i> Medium Risk — Active backlogs detected</span>';
+        } else {
+          hint.innerHTML = '<span style="color:var(--success); font-weight:600;"><i class="fa fa-circle-check"></i> Low Risk — Minor backlog, manageable</span>';
+        }
+      }
+    }
+
+    function updateSGPALive() { /* reserved for future live preview */ }
+
+    function calcMidterm() {
+      const obtained = parseFloat(document.getElementById('f-midterm-obtained').value);
+      const total = parseFloat(document.getElementById('f-midterm-total').value);
+      const display = document.getElementById('midterm-pct-display');
+      const result = document.getElementById('midterm-result');
+      const hint = document.getElementById('midterm-hint');
+      const hidden = document.getElementById('f-ia');
+
+      if (isNaN(obtained) || isNaN(total) || total <= 0) {
+        display.textContent = '—';
+        result.className = 'midterm-result';
+        hidden.value = '';
+        hint.textContent = 'Enter both values above — the percentage will be calculated automatically.';
+        hint.style.color = '';
+        return;
+      }
+
+      if (obtained > total) {
+        hint.innerHTML = '<span style="color:var(--danger);"><i class="fa fa-triangle-exclamation"></i> Marks obtained cannot exceed total marks.</span>';
+        display.textContent = '!!';
+        result.className = 'midterm-result result-bad';
+        hidden.value = '';
+        return;
+      }
+
+      const pct = Math.round((obtained / total) * 100);
+      hidden.value = pct;
+      display.textContent = pct + '%';
+
+      // Colour the result pill
+      if (pct >= 70) {
+        result.className = 'midterm-result result-good';
+        hint.innerHTML = `<span style="color:var(--success);"><i class="fa fa-circle-check"></i> Good performance — ${obtained} out of ${total} marks (${pct}%)</span>`;
+      } else if (pct >= 50) {
+        result.className = 'midterm-result result-medium';
+        hint.innerHTML = `<span style="color:var(--warning);"><i class="fa fa-circle-exclamation"></i> Average — ${obtained} out of ${total} marks (${pct}%) — needs improvement</span>`;
+      } else if (pct >= 35) {
+        result.className = 'midterm-result result-bad';
+        hint.innerHTML = `<span style="color:var(--danger);"><i class="fa fa-triangle-exclamation"></i> Below average — ${obtained} out of ${total} marks (${pct}%) — at risk</span>`;
+      } else {
+        result.className = 'midterm-result result-bad';
+        hint.innerHTML = `<span style="color:var(--danger);"><i class="fa fa-circle-xmark"></i> Critical — ${obtained} out of ${total} marks (${pct}%) — high dropout risk</span>`;
+      }
+    }
+
+    function setExamToggle(val) {
+      document.getElementById('f-exam-appeared').value = val;
+      document.getElementById('toggle-exam-yes').className = 'toggle-btn' + (val === 'yes' ? ' yes-active' : '');
+      document.getElementById('toggle-exam-no').className = 'toggle-btn' + (val === 'no' ? ' no-active' : '');
+    }
+
+    function setExtraToggle(val) {
+      document.getElementById('f-extracurricular').value = val;
+      document.getElementById('toggle-extra-yes').className = 'toggle-btn' + (val === 'yes' ? ' yes-active' : '');
+      document.getElementById('toggle-extra-no').className = 'toggle-btn' + (val === 'no' ? ' no-active' : '');
+    }
+
+    function setSportsToggle(val) {
+      document.getElementById('f-sports').value = val;
+      document.getElementById('toggle-sports-yes').className = 'toggle-btn' + (val === 'yes' ? ' yes-active' : '');
+      document.getElementById('toggle-sports-no').className = 'toggle-btn' + (val === 'no' ? ' no-active' : '');
+    }
+
+    function getGradeData() {
+      const year = parseInt(document.getElementById('f-acyear').value) || 0;
+      const gv = (id) => { const el = document.getElementById(id); return el && el.value !== '' ? parseFloat(el.value) : NaN; };
+      const cgpaVals = [], sgpaVals = [];
+
+      if (year === 1) {
+        [gv('f-sgpa1'), gv('f-sgpa2')].forEach(v => { if (!isNaN(v)) sgpaVals.push(v); });
+      } else if (year === 2) {
+        [gv('f-cgpa1')].forEach(v => { if (!isNaN(v)) cgpaVals.push(v); });
+        [gv('f-sgpa3'), gv('f-sgpa4')].forEach(v => { if (!isNaN(v)) sgpaVals.push(v); });
+      } else if (year === 3) {
+        [gv('f-cgpa1y3'), gv('f-cgpa2')].forEach(v => { if (!isNaN(v)) cgpaVals.push(v); });
+        [gv('f-sgpa5'), gv('f-sgpa6')].forEach(v => { if (!isNaN(v)) sgpaVals.push(v); });
+      } else if (year === 4) {
+        [gv('f-cgpa1y4'), gv('f-cgpa2y4'), gv('f-cgpa3')].forEach(v => { if (!isNaN(v)) cgpaVals.push(v); });
+        [gv('f-sgpa7'), gv('f-sgpa8')].forEach(v => { if (!isNaN(v)) sgpaVals.push(v); });
+      }
+      return { year, cgpaVals, sgpaVals };
+    }
+
+    // ================================================================
+    // RISK SCORE ENGINE
+    // ================================================================
+    function calculateRiskScore(data) {
+      let score = 0;
+      const factors = [];
+      const breakdown = {};
+
+      // --- Academic: 55 pts max ---
+      const ia = parseFloat(data.ia) || -1;   // IA marks 0–100 (-1 = not entered)
+      const examApp = data.examAppeared;             // 'yes' | 'no'
+      const assignRate = parseInt(data.assignment) || 3; // 1=Never 2=Rarely 3=Mostly 4=Always
+      const mentorFreq = parseInt(data.mentorContact) || 2; // 0=None 1=Rare 2=Occasional 3=Regular
+
+      let acScore = 0;
+
+      // IA Marks (internal assessment)
+      if (ia >= 0) {
+        if (ia < 35) { acScore += 25; factors.push({ name: `IA marks critically low (${ia}%) — below passing`, sev: 'High', icon: '🚨' }); }
+        else if (ia < 50) { acScore += 16; factors.push({ name: `IA marks below average (${ia}%)`, sev: 'High', icon: '📉' }); }
+        else if (ia < 60) { acScore += 9; factors.push({ name: `IA marks borderline (${ia}%)`, sev: 'Medium', icon: '📊' }); }
+        else if (ia < 70) { acScore += 4; factors.push({ name: `IA marks acceptable (${ia}%) — could improve`, sev: 'Low', icon: '📈' }); }
+      }
+
+      // Exam appearance
+      if (examApp === 'no') {
+        acScore += 20;
+        factors.push({ name: 'Did not appear in last semester exam', sev: 'High', icon: '🚫' });
+      }
+
+      // Assignment submission  (handled partly under Engagement below, but seed here)
+      if (assignRate === 1) { acScore += 10; factors.push({ name: 'Never submits assignments', sev: 'High', icon: '❌' }); }
+      else if (assignRate === 2) { acScore += 5; factors.push({ name: 'Rarely submits assignments on time', sev: 'Medium', icon: '⚠️' }); }
+
+      // Faculty / mentor disconnect
+      if (mentorFreq === 0) { acScore += 5; factors.push({ name: 'No contact with faculty or mentor', sev: 'High', icon: '🔇' }); }
+      else if (mentorFreq === 1) { acScore += 2; factors.push({ name: 'Rarely contacts faculty or mentor', sev: 'Low', icon: '📵' }); }
+
+      breakdown['Academic'] = { score: acScore, max: 55 };
+      score += acScore;
+
+      // --- GPA Performance (SGPA/CGPA 1–10 scale): 20 pts max ---
+      let gpaScore = 0;
+      if (data.gradeData) {
+        const { sgpaVals, cgpaVals } = data.gradeData;
+        const allGrades = [...sgpaVals, ...cgpaVals];
+
+        if (allGrades.length > 0) {
+          const latestSGPA = sgpaVals.length > 0 ? sgpaVals[sgpaVals.length - 1] : null;
+          const avgCGPA = cgpaVals.length > 0 ? cgpaVals.reduce((a, b) => a + b, 0) / cgpaVals.length : null;
+          const refGPA = latestSGPA ?? avgCGPA;
+
+          if (refGPA !== null) {
+            if (refGPA < 5.0) {
+              gpaScore += 20;
+              factors.push({ name: `SGPA critically low (${refGPA.toFixed(2)}) — below passing threshold`, sev: 'High', icon: '🚨' });
+            } else if (refGPA < 6.0) {
+              gpaScore += 12;
+              factors.push({ name: `SGPA below average (${refGPA.toFixed(2)})`, sev: 'High', icon: '📉' });
+            } else if (refGPA < 7.0) {
+              gpaScore += 6;
+              factors.push({ name: `SGPA borderline (${refGPA.toFixed(2)}) — needs improvement`, sev: 'Medium', icon: '📊' });
+            } else if (refGPA < 7.5) {
+              gpaScore += 2;
+              factors.push({ name: `SGPA acceptable (${refGPA.toFixed(2)}) — room to improve`, sev: 'Low', icon: '📈' });
+            }
+          }
+
+          // CGPA declining trend (year-on-year)
+          if (cgpaVals.length >= 2) {
+            const trend = cgpaVals[cgpaVals.length - 1] - cgpaVals[0];
+            if (trend < -0.5) {
+              gpaScore += 5;
+              factors.push({ name: `CGPA declining trend (${cgpaVals[0].toFixed(2)} → ${cgpaVals[cgpaVals.length - 1].toFixed(2)})`, sev: 'Medium', icon: '📉' });
+            }
+          }
+        }
+      }
+      breakdown['GPA / SGPA'] = { score: gpaScore, max: 20 };
+      score += gpaScore;
+
+      // --- Backlog Analysis: 25 pts max ---
+      let blScore = 0;
+      let forceHighRisk = false;
+      if (data.passedAll === 'no') {
+        const total = parseInt(data.totalSubjects) || 0;
+        const backlogs = parseInt(data.backlogs) || 0;
+        if (backlogs > 0 && total > 0) {
+          const pct = (backlogs / total) * 100;
+          if (pct > 50) {
+            blScore = 25; forceHighRisk = true;
+            factors.push({ name: `Critical backlog — ${backlogs} of ${total} subjects failed (${Math.round(pct)}%)`, sev: 'High', icon: '🚨' });
+          } else if (pct > 33) {
+            blScore = 20; forceHighRisk = true;
+            factors.push({ name: `High backlog — ${backlogs} of ${total} subjects failed (${Math.round(pct)}%)`, sev: 'High', icon: '❌' });
+          } else if (pct > 15) {
+            blScore = 12;
+            factors.push({ name: `Moderate backlog — ${backlogs} of ${total} subjects failed (${Math.round(pct)}%)`, sev: 'Medium', icon: '⚠️' });
+          } else {
+            blScore = 5;
+            factors.push({ name: `Minor backlog — ${backlogs} subject(s) pending clearance`, sev: 'Low', icon: '📋' });
+          }
+        } else if (backlogs > 0) {
+          blScore = 8;
+          factors.push({ name: `${backlogs} backlog subject(s) — total load not specified`, sev: 'Medium', icon: '⚠️' });
+        }
+      }
+      breakdown['Backlogs'] = { score: blScore, max: 25 };
+      score += blScore;
+
+      // --- Financial: 20 pts max ---
+      let finScore = 0;
+      if (data.finrisk === '1') { finScore += 8; factors.push({ name: 'Financial risk detected', sev: 'High', icon: '💸' }); }
+      if (data.tuition === '0') { finScore += 8; factors.push({ name: 'Tuition fees not up to date', sev: 'High', icon: '💰' }); }
+      if (data.debt === '1') { finScore += 4; factors.push({ name: 'Outstanding debt present', sev: 'Medium', icon: '💳' }); }
+      breakdown['Financial'] = { score: finScore, max: 20 };
+      score += finScore;
+
+      // --- Engagement: 15 pts max ---
+      let engScore = 0;
+      const att = parseInt(data.attendance);
+      const stdy = parseInt(data.study);
+      const exam = parseInt(data.exam);
+      if (att === 1) { engScore += 6; factors.push({ name: 'Poor class attendance (<60%)', sev: 'High', icon: '🚫' }); }
+      else if (att === 2) { engScore += 3; factors.push({ name: 'Fair class attendance (60-74%)', sev: 'Medium', icon: '⚠️' }); }
+      if (stdy === 1) { engScore += 5; factors.push({ name: 'Very few study hours (<5/week)', sev: 'High', icon: '⏱️' }); }
+      else if (stdy === 2) { engScore += 2; factors.push({ name: 'Limited study hours (5-10/week)', sev: 'Low', icon: '⏱️' }); }
+      if (exam === 1) { engScore += 4; factors.push({ name: 'Low exam preparation level', sev: 'Medium', icon: '📚' }); }
+      breakdown['Engagement'] = { score: engScore, max: 15 };
+      score += engScore;
+
+      // --- Personal: 10 pts max ---
+      let perScore = 0;
+      const age = parseInt(data.age);
+      const emp = parseInt(data.employed);
+      const child = data.childcare === '1';
+      const displaced = data.displaced === '1';
+      const hasExtra = data.extracurricular === 'yes';
+      const hasSports = data.sports === 'yes';
+      if (age > 30) { perScore += 3; factors.push({ name: 'Non-traditional age (>30)', sev: 'Low', icon: '👤' }); }
+      if (emp === 2) { perScore += 4; factors.push({ name: 'Full-time work while studying', sev: 'High', icon: '💼' }); }
+      else if (emp === 1) { perScore += 2; factors.push({ name: 'Part-time work while studying', sev: 'Low', icon: '💼' }); }
+      if (child) { perScore += 2; factors.push({ name: 'Childcare responsibilities', sev: 'Low', icon: '👶' }); }
+      if (displaced) { perScore += 1; factors.push({ name: 'Displaced / refugee status', sev: 'Low', icon: '🌍' }); }
+      // Protective factors — reduce personal risk score
+      if (hasExtra) { perScore = Math.max(0, perScore - 2); factors.push({ name: 'Active in extracurricular activities (protective)', sev: 'Low', icon: '🎭' }); }
+      if (hasSports) { perScore = Math.max(0, perScore - 2); factors.push({ name: 'Participates in sports (protective)', sev: 'Low', icon: '🏅' }); }
+      breakdown['Personal'] = { score: perScore, max: 10 };
+      score += perScore;
+
+      // Cap at 100 and scale
+      const rawMax = 145; // updated total max (55+20+25+20+15+10)
+      const pct = Math.min(Math.round((score / rawMax) * 100), 100);
+      const riskLevel = forceHighRisk ? 'High' : (pct >= 60 ? 'High' : pct >= 40 ? 'Medium' : 'Low');
+
+      return { score: pct, riskLevel, factors, breakdown };
+    }
+
+    // ================================================================
+    // INTERVENTION ROUTING
+    // ================================================================
+    function buildInterventions(data, result) {
+      const interventions = [];
+      const { factors, breakdown } = result;
+      const hasAcademic = breakdown['Academic'].score > 10;
+      const hasFinancial = breakdown['Financial'].score > 0;
+      const hasEngagement = breakdown['Engagement'].score > 0;
+      const hasPersonal = breakdown['Personal'].score > 3;
+
+      if (hasAcademic || hasEngagement) {
+        interventions.push({
+          dept: 'Academic Support Services',
+          email: 'admissions@iilm.edu',
+          phone: '+1 (555) 123-4581',
+          color: 'rgba(99,102,241,0.15)',
+          iconColor: 'var(--primary-light)',
+          icon: 'fa fa-book',
+          actions: ['Schedule academic advisor meeting', 'Enroll in tutoring programs', 'Join structured study groups', 'Review course load balance'],
+        });
+      }
+      if (hasFinancial) {
+        interventions.push({
+          dept: 'Financial Aid Office',
+          email: 'finance.gn@iilm.edu',
+          phone: '+1 (555) 123-4582',
+          color: 'rgba(16,185,129,0.15)',
+          iconColor: 'var(--success)',
+          icon: 'fa fa-dollar-sign',
+          actions: ['Apply for emergency financial assistance', 'Review payment plan options', 'Explore scholarship opportunities', 'Debt counseling session'],
+        });
+      }
+      if (hasEngagement) {
+        interventions.push({
+          dept: 'Student Counseling Services',
+          email: 'studentsupport@iilm.edu',
+          phone: '+1 (555) 123-4583',
+          color: 'rgba(245,158,11,0.15)',
+          iconColor: 'var(--warning)',
+          icon: 'fa fa-comments',
+          actions: ['Time management workshops', 'Study skills coaching session', 'Peer mentoring program', 'Goal-setting consultation'],
+        });
+      }
+      if (hasPersonal) {
+        interventions.push({
+          dept: 'Wellness Center',
+          email: 'studentsupport.gn@iilm.edu',
+          phone: '+1 (555) 123-4584',
+          color: 'rgba(244,114,182,0.15)',
+          iconColor: 'var(--accent2)',
+          icon: 'fa fa-heart-pulse',
+          actions: ['Wellness consultation', 'Work-life balance assessment', 'Support group referral', 'Resource navigation assistance'],
+        });
+      }
+
+      if (interventions.length === 0) {
+        interventions.push({
+          dept: 'Student Success Center',
+          email: 'studentsupport.gn@iilm.edu',
+          phone: '+1 (555) 123-4580',
+          color: 'rgba(16,185,129,0.15)',
+          iconColor: 'var(--success)',
+          icon: 'fa fa-star',
+          actions: ['Continue current academic path', 'Explore advanced courses or research', 'Mentoring program participation', 'Career development services'],
+        });
+      }
+
+      return interventions;
+    }
+
+    // ================================================================
+    // PREDICTION RUN
+    // ================================================================
+    function runPrediction() {
+      const name = document.getElementById('f-name').value.trim() || 'Unknown Student';
+      const sid = document.getElementById('f-sid').value.trim() || 'N/A';
+      const data = {
+        name, sid,
+        // Phase 1 — Identity
+        acyear: document.getElementById('f-acyear').value,
+        course: document.getElementById('f-course').value.trim(),
+        section: document.getElementById('f-section').value.trim(),
+        // Phase 2 — SGPA/CGPA grade data
+        gradeData: getGradeData(),
+        // Phase 3 — Backlog analysis
+        totalSubjects: document.getElementById('f-total-subjects').value,
+        passedAll: document.getElementById('f-passed-all').value,
+        backlogs: document.getElementById('f-backlogs')?.value || '0',
+        // Phase 4 — Academic performance (revised)
+        ia: document.getElementById('f-ia').value,
+        examAppeared: document.getElementById('f-exam-appeared').value,
+        assignment: document.getElementById('f-assignment').value,
+        // Extracurricular & Sports
+        extracurricular: document.getElementById('f-extracurricular').value,
+        sports: document.getElementById('f-sports').value,
+        mentorContact: document.getElementById('f-mentor').value,
+        // Financial
+        tuition: document.getElementById('f-tuition').value,
+        finrisk: document.getElementById('f-finrisk').value,
+        scholarship: document.getElementById('f-scholarship').value,
+        debt: document.getElementById('f-debt').value,
+        // Engagement
+        attendance: document.getElementById('f-attendance').value,
+        study: document.getElementById('f-study').value,
+        exam: document.getElementById('f-exam').value,
+        // Personal
+        employed: document.getElementById('f-employed').value,
+        childcare: document.getElementById('f-childcare').value,
+        displaced: document.getElementById('f-displaced').value,
+        age: document.getElementById('f-age').value,
+        timestamp: new Date().toISOString()
+      };
+
+      const btn = document.getElementById('predict-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Analyzing...';
+
+      setTimeout(() => {
+        const result = calculateRiskScore(data);
+        const interventions = buildInterventions(data, result);
+        lastPrediction = { ...data, ...result, interventions };
+
+        renderResult(lastPrediction);
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-bolt"></i> Generate Risk Assessment';
+        showToast('success', 'Risk assessment complete!');
+      }, 900);
+    }
+
+    // ================================================================
+    // RENDER RESULT
+    // ================================================================
+    function renderResult(pred) {
+      const container = document.getElementById('result-container');
+      container.style.display = 'block';
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      document.getElementById('res-name').textContent = pred.name;
+      document.getElementById('res-sid').textContent = 'ID: ' + pred.sid + '  |  ' + new Date(pred.timestamp).toLocaleString();
+
+      // Badge
+      const badgeMap = { High: 'risk-high', Medium: 'risk-medium', Low: 'risk-low' };
+      document.getElementById('res-badge').innerHTML =
+        `<span class="risk-badge ${badgeMap[pred.riskLevel]}"><i class="fa fa-circle"></i> ${pred.riskLevel} Risk</span>`;
+
+      // Score ring
+      const pct = pred.score;
+      const circumference = 314;
+      const offset = circumference - (circumference * pct / 100);
+      const ringColors = { High: '#ef4444', Medium: '#f59e0b', Low: '#10b981' };
+      const ring = document.getElementById('ring-fill-circle');
+      ring.style.stroke = ringColors[pred.riskLevel];
+      setTimeout(() => {
+        ring.style.strokeDashoffset = offset;
+      }, 100);
+
+      document.getElementById('res-score-num').textContent = pct + '%';
+      document.getElementById('res-score-num').style.color = ringColors[pred.riskLevel];
+      document.getElementById('res-risk-label').textContent = pred.riskLevel + ' Risk';
+      document.getElementById('res-risk-label').style.color = ringColors[pred.riskLevel];
+
+      // Score breakdown bars
+      const breakdownHTML = Object.entries(pred.breakdown).map(([cat, v]) => {
+        const pctBar = Math.round((v.score / v.max) * 100);
+        const color = pctBar >= 60 ? '#ef4444' : pctBar >= 40 ? '#f59e0b' : '#10b981';
+        return `
+      <div style="margin-bottom:10px;">
+        <div class="flex justify-between" style="margin-bottom:4px; font-size:12px;">
+          <span style="color:var(--text-muted)">${cat}</span>
+          <span style="color:${color}; font-weight:600">${v.score}/${v.max}</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:${pctBar}%; background:${color}"></div>
+        </div>
+      </div>
+    `;
+      }).join('');
+      document.getElementById('score-breakdown').innerHTML = breakdownHTML;
+
+      // Factors
+      const sevMap = { High: 'sev-high', Medium: 'sev-medium', Low: 'sev-low' };
+      const factorsHTML = pred.factors.length
+        ? pred.factors.map(f => `
+        <div class="factor-item sev-${f.sev.toLowerCase()}">
+          <span class="factor-icon">${f.icon}</span>
+          <span class="factor-name">${f.name}</span>
+          <span class="factor-sev sev-badge-${f.sev.toLowerCase()}">${f.sev}</span>
+        </div>
+      `).join('')
+        : '<div class="empty-state" style="padding:20px;"><i class="fa fa-circle-check"></i><p>No significant risk factors identified.</p></div>';
+      document.getElementById('factors-list').innerHTML = factorsHTML;
+
+      // Radar chart
+      renderRadarChart(pred.breakdown);
+
+      // Interventions
+      const intHTML = pred.interventions.map(int => `
+    <div class="intervention-card">
+      <div class="int-header">
+        <div class="int-icon" style="background:${int.color}; color:${int.iconColor}">
+          <i class="${int.icon}"></i>
+        </div>
+        <div>
+          <div class="int-dept">${int.dept}</div>
+          <div class="int-contact">${int.email}</div>
+        </div>
+      </div>
+      <ul class="int-actions">
+        ${int.actions.map(a => `<li>&#8226; ${a}</li>`).join('')}
+      </ul>
+      <div class="int-btn-group">
+        <button class="btn btn-outline btn-sm" onclick="sendEmail('${int.email}','${pred.name}','${pred.score}','${pred.riskLevel}')">
+          <i class="fa fa-envelope"></i> Email
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="scheduleMeeting('${int.dept}','${int.phone}')">
+          <i class="fa fa-calendar"></i> Schedule
+        </button>
+      </div>
+    </div>
+  `).join('');
+      document.getElementById('intervention-grid').innerHTML = intHTML;
+    }
+
+    function renderRadarChart(breakdown) {
+      destroyChart('radar');
+      const labels = Object.keys(breakdown);
+      const data = Object.values(breakdown).map(v => Math.round((v.score / v.max) * 100));
+      chartInstances['radar'] = new Chart(document.getElementById('scoreRadarChart'), {
+        type: 'radar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Risk %',
+            data,
+            backgroundColor: 'rgba(99,102,241,0.2)',
+            borderColor: '#6366f1',
+            pointBackgroundColor: '#818cf8',
+            pointRadius: 5,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            r: {
+              min: 0, max: 100,
+              grid: { color: 'rgba(255,255,255,0.07)' },
+              ticks: { color: '#475569', backdropColor: 'transparent', stepSize: 25 },
+              pointLabels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } }
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // ================================================================
+    // EMAIL & SCHEDULE
+    // ================================================================
+    function sendEmail(email, name, score, level) {
+      const subject = encodeURIComponent(`Student Dropout Risk Alert: ${name}`);
+      const body = encodeURIComponent(
+        `Dear Support Team,\n\nI would like to bring to your attention a student who has been identified as at-risk through our Early Warning System:\n\n` +
+        `Student Name: ${name}\nRisk Score: ${score}%\nRisk Level: ${level}\n\n` +
+        `Please review this student's file and reach out to provide appropriate support.\n\nThis alert was generated by Retenza - Student Dropout Risk Prediction System.\n\nBest regards,`
+      );
+      window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+      showToast('info', 'Opening email client...');
+    }
+
+    function scheduleMeeting(dept, phone) {
+      showToast('info', `${dept} - Phone: ${phone}`);
+      alert(`Schedule a meeting with:\n${dept}\n\nPhone: ${phone}\nEmail: See intervention card above`);
+    }
+
+    // ================================================================
+    // EXPORT PDF
+    // ================================================================
+    function exportPDF() {
+      if (!lastPrediction) { showToast('error', 'No prediction to export.'); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const p = lastPrediction;
+
+      // Header gradient rectangle
+      doc.setFillColor(99, 102, 241);
+      doc.rect(0, 0, 210, 40, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Retenza', 15, 17);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Student Dropout Risk Assessment Report', 15, 25);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 32);
+
+      // Risk score badge
+      const riskColor = p.riskLevel === 'High' ? [239, 68, 68] : p.riskLevel === 'Medium' ? [245, 158, 11] : [16, 185, 129];
+      doc.setFillColor(...riskColor);
+      doc.roundedRect(140, 8, 55, 24, 4, 4, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text(p.score + '%', 167.5, 24, { align: 'center' });
+      doc.setFontSize(9);
+      doc.text(p.riskLevel + ' Risk', 167.5, 30, { align: 'center' });
+
+      // Student info section
+      doc.setTextColor(30, 30, 50);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Student Information', 15, 52);
+      doc.setDrawColor(200, 200, 220);
+      doc.line(15, 54, 195, 54);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 80);
+      // Student Info
+      const yearLabels = { '1': '1st Year', '2': '2nd Year', '3': '3rd Year', '4': '4th Year' };
+      const assignLabels = { '1': 'Never', '2': 'Rarely', '3': 'Mostly', '4': 'Always' };
+      const mentorLabels = { '0': 'None', '1': 'Rare', '2': 'Occasional', '3': 'Regular' };
+      const info = [
+        ['Name:', p.name || 'N/A'],
+        ['Student ID:', p.sid || 'N/A'],
+        ['Age:', String(p.age || 'N/A')],
+        ['Course:', p.course || 'N/A'],
+        ['Academic Year:', yearLabels[p.acyear] || 'N/A'],
+        ['Section:', p.section || 'N/A'],
+        ['Assessment Date:', new Date(p.timestamp).toLocaleString()],
+      ];
+      let y = 62;
+      info.forEach(([label, val]) => {
+        doc.setFont('helvetica', 'bold');
+        doc.text(label, 15, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(val), 70, y);
+        y += 7;
+      });
+
+      // Phase 2 — SGPA/CGPA
+      if (p.gradeData) {
+        const { sgpaVals = [], cgpaVals = [] } = p.gradeData;
+        if (sgpaVals.length > 0 || cgpaVals.length > 0) {
+          y += 4;
+          if (y > 260) { doc.addPage(); y = 20; }
+          doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 50);
+          doc.text('Academic History (SGPA / CGPA)', 15, y);
+          y += 3; doc.line(15, y, 195, y); y += 8;
+          doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 80);
+          const semLabels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6', 'Sem 7', 'Sem 8'];
+          sgpaVals.forEach((v, i) => {
+            const col = i % 2 === 0 ? 15 : 110;
+            if (i % 2 === 0 && i > 0) y += 7;
+            doc.setFont('helvetica', 'bold'); doc.text(semLabels[i] + ' SGPA:', col, y);
+            doc.setFont('helvetica', 'normal'); doc.text(v.toFixed(2), col + 45, y);
+          });
+          if (sgpaVals.length % 2 !== 0) y += 7;
+          cgpaVals.forEach((v, i) => {
+            const col = i % 2 === 0 ? 15 : 110;
+            if (i % 2 === 0 && i > 0) y += 7;
+            doc.setFont('helvetica', 'bold'); doc.text('Yr ' + (i + 1) + ' CGPA:', col, y);
+            doc.setFont('helvetica', 'normal'); doc.text(v.toFixed(2), col + 45, y);
+          });
+          y += 12;
+        }
+      }
+
+      // Phase 3 — Backlogs
+      if (p.passedAll === 'no' && p.backlogs > 0) {
+        if (y > 260) { doc.addPage(); y = 20; }
+        doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 50);
+        doc.text('Backlog Summary', 15, y);
+        y += 3; doc.line(15, y, 195, y); y += 8;
+        doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 80);
+        doc.setFont('helvetica', 'bold'); doc.text('Total Subjects:', 15, y);
+        doc.setFont('helvetica', 'normal'); doc.text(String(p.totalSubjects || 'N/A'), 70, y); y += 7;
+        doc.setFont('helvetica', 'bold'); doc.text('Subjects Not Cleared:', 15, y);
+        doc.setFont('helvetica', 'normal'); doc.text(String(p.backlogs), 70, y); y += 12;
+      }
+
+      // Academic Performance data
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 50);
+      doc.text('Academic Performance', 15, y);
+      y += 3; doc.line(15, y, 195, y); y += 8;
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 80);
+      const academic = [
+        ['Mid-term Marks:', p.ia ? p.ia + '%' : 'N/A'],
+        ['Appeared in Exam:', p.examAppeared === 'no' ? 'No (Absent/Detained)' : 'Yes'],
+        ['Assignment Rate:', assignLabels[String(p.assignment)] || 'N/A'],
+        ['Extracurricular:', p.extracurricular === 'yes' ? 'Yes' : 'No'],
+        ['Sports:', p.sports === 'yes' ? 'Yes' : 'No'],
+        ['Mentor Contact:', mentorLabels[String(p.mentorContact)] || 'N/A'],
+      ];
+      academic.forEach(([label, val], i) => {
+        const col = i % 2 === 0 ? 15 : 110;
+        if (i % 2 === 0 && i > 0) y += 7;
+        doc.setFont('helvetica', 'bold');
+        doc.text(label, col, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(val), col + 50, y);
+      });
+      y += 12;
+
+      // Risk Factors
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 50);
+      doc.text('Identified Risk Factors', 15, y);
+      y += 3;
+      doc.line(15, y, 195, y);
+      y += 8;
+      doc.setFontSize(10);
+      if (p.factors.length === 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(16, 185, 129);
+        doc.text('No significant risk factors detected.', 15, y);
+        y += 8;
+      } else {
+        p.factors.forEach(f => {
+          const sColor = f.sev === 'High' ? [239, 68, 68] : f.sev === 'Medium' ? [245, 158, 11] : [16, 185, 129];
+          doc.setFillColor(...sColor);
+          doc.circle(17, y - 1.5, 2, 'F');
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(50, 50, 80);
+          doc.text(`${f.name} (${f.sev})`, 22, y);
+          y += 7;
+          if (y > 270) { doc.addPage(); y = 20; }
+        });
+      }
+
+      // Interventions
+      y += 4;
+      if (y > 250) { doc.addPage(); y = 20; }
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 50);
+      doc.text('Recommended Interventions', 15, y);
+      y += 3;
+      doc.line(15, y, 195, y);
+      y += 8;
+      doc.setFontSize(10);
+      p.interventions.forEach(int => {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(99, 102, 241);
+        doc.text(int.dept, 15, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50, 50, 80);
+        doc.text('Contact: ' + int.email, 15, y);
+        y += 5;
+        doc.text('Phone: ' + int.phone, 15, y);
+        y += 6;
+        int.actions.slice(0, 3).forEach(a => {
+          doc.text('\u2022 ' + a, 20, y);
+          y += 5;
+        });
+        y += 4;
+        if (y > 270) { doc.addPage(); y = 20; }
+      });
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(150, 163, 184);
+      doc.text('Retenza - AI-Powered Student Dropout Risk Prediction System | 93.39% Model Accuracy',
+        105, 290, { align: 'center' });
+
+      doc.save(`Retenza_${p.name.replace(/\s+/g, '_')}_${p.sid}.pdf`);
+      showToast('success', 'PDF report downloaded!');
+    }
+
+    // ================================================================
+    // EXPORT JSON
+    // ================================================================
+    function exportJSON() {
+      if (!lastPrediction) { showToast('error', 'No prediction to export.'); return; }
+      const blob = new Blob([JSON.stringify(lastPrediction, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Retenza_${lastPrediction.sid}_data.json`;
+      a.click(); URL.revokeObjectURL(url);
+      showToast('success', 'JSON data downloaded!');
+    }
+
+    // ================================================================
+    // SAVE TO HISTORY
+    // ================================================================
+    function saveToHistory() {
+      if (!lastPrediction) { showToast('error', 'No prediction to save.'); return; }
+      // Check duplicate
+      const existing = predictionHistory.findIndex(p => p.sid === lastPrediction.sid && p.timestamp === lastPrediction.timestamp);
+      if (existing === -1) {
+        predictionHistory.push({ ...lastPrediction });
+        localStorage.setItem('retenza_history', JSON.stringify(predictionHistory));
+        updateHistoryBadge();
+        showToast('success', 'Saved to history!');
+      } else {
+        showToast('info', 'Already saved in history.');
+      }
+    }
+
+    function updateHistoryBadge() {
+      document.getElementById('history-count').textContent = predictionHistory.length;
+    }
+
+    // ================================================================
+    // HISTORY PAGE
+    // ================================================================
+    function renderHistory() {
+      updateHistoryBadge();
+      const list = document.getElementById('history-list');
+      const query = (document.getElementById('history-search')?.value || '').toLowerCase();
+      const filtered = predictionHistory.filter(p =>
+        p.name.toLowerCase().includes(query) || p.sid.toLowerCase().includes(query)
+      );
+      document.getElementById('history-count-label').textContent =
+        `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty-state"><i class="fa fa-clock-rotate-left"></i><p>No history records found.</p></div>`;
+        return;
+      }
+
+      const riskColors = { High: '#ef4444', Medium: '#f59e0b', Low: '#10b981' };
+      const bgColors = { High: 'rgba(239,68,68,0.15)', Medium: 'rgba(245,158,11,0.15)', Low: 'rgba(16,185,129,0.15)' };
+      list.innerHTML = [...filtered].reverse().map((p, i) => {
+        const initials = p.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        return `
+      <div class="history-item" onclick="viewHistoryItem(${predictionHistory.length - 1 - i})">
+        <div class="history-avatar" style="background:${bgColors[p.riskLevel]}; color:${riskColors[p.riskLevel]}">${initials}</div>
+        <div class="history-info">
+          <div class="hname">${p.name}</div>
+          <div class="htime">ID: ${p.sid} · ${new Date(p.timestamp).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="history-score" style="color:${riskColors[p.riskLevel]}">${p.score}%</div>
+          <div class="risk-badge ${p.riskLevel === 'High' ? 'risk-high' : p.riskLevel === 'Medium' ? 'risk-medium' : 'risk-low'}"
+               style="font-size:10px; padding:2px 8px;">
+            ${p.riskLevel}
+          </div>
+        </div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    function filterHistory() { renderHistory(); }
+
+    function viewHistoryItem(idx) {
+      const pred = predictionHistory[idx];
+      if (!pred) return;
+      lastPrediction = pred;
+      navigate('predict');
+      setTimeout(() => {
+        document.getElementById('f-name').value = pred.name || '';
+        document.getElementById('f-sid').value = pred.sid || '';
+        document.getElementById('f-age').value = pred.age || 20;
+        if (pred.ia) { document.getElementById('f-ia').value = pred.ia; }
+        renderResult(pred);
+      }, 100);
+    }
+
+    function clearForm() {
+      // Phase 1
+      document.getElementById('f-course').value = '';
+      const yearEl = document.getElementById('f-acyear');
+      yearEl.innerHTML = '<option value="">-- Select Course First --</option>';
+      yearEl.disabled = true;
+      document.getElementById('f-section').value = '';
+
+      // Phase 2 — hide year sections
+      document.getElementById('phase2-section').style.display = 'none';
+      document.getElementById('phase3-section').style.display = 'none';
+      ['year1-fields', 'year2-fields', 'year3-fields', 'year4-fields'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      ['f-sgpa1', 'f-sgpa2', 'f-cgpa1', 'f-sgpa3', 'f-sgpa4',
+        'f-cgpa1y3', 'f-cgpa2', 'f-sgpa5', 'f-sgpa6',
+        'f-cgpa1y4', 'f-cgpa2y4', 'f-cgpa3', 'f-sgpa7', 'f-sgpa8'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+
+      // Phase 3
+      document.getElementById('f-total-subjects').value = '';
+      setPassToggle('yes');
+      const bl = document.getElementById('f-backlogs'); if (bl) bl.value = '';
+      document.getElementById('backlog-risk-hint').innerHTML = '';
+      document.getElementById('backlog-risk-bar').style.display = 'none';
+
+      // Phase 4 — Student info
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-sid').value = '';
+      document.getElementById('f-age').value = '20';
+
+      // Mid-term calculator
+      document.getElementById('f-midterm-obtained').value = '';
+      document.getElementById('f-midterm-total').value = '';
+      document.getElementById('midterm-pct-display').textContent = '\u2014';
+      document.getElementById('midterm-result').className = 'midterm-result';
+      document.getElementById('midterm-hint').textContent = 'Enter both values above \u2014 the percentage will be calculated automatically.';
+      document.getElementById('f-ia').value = '';
+
+      // Exam / extra / sports toggles
+      setExamToggle('yes');
+      setExtraToggle('yes');
+      setSportsToggle('yes');
+
+      // Select dropdowns — reset to first option
+      ['f-assignment', 'f-mentor', 'f-tuition', 'f-finrisk',
+        'f-scholarship', 'f-debt', 'f-attendance', 'f-study',
+        'f-exam', 'f-employed', 'f-childcare', 'f-displaced'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.selectedIndex = 0;
+        });
+      document.getElementById('f-assignment').selectedIndex = 1; // default: Mostly
+      document.getElementById('f-mentor').selectedIndex = 1;     // default: Occasional
+
+      // Hide result area
+      document.getElementById('result-container').style.display = 'none';
+      showToast('info', 'Form cleared successfully.');
+    }
+
+    function clearHistory() {
+      if (!confirm('Clear all history records? This cannot be undone.')) return;
+      predictionHistory = [];
+      localStorage.setItem('retenza_history', JSON.stringify(predictionHistory));
+      updateHistoryBadge();
+      renderHistory();
+      showToast('info', 'History cleared.');
+    }
+
+    // ================================================================
+    // BULK UPLOAD
+    // ================================================================
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('dragover');
+    }
+    function handleDragLeave(e) {
+      document.getElementById('drop-zone').classList.remove('dragover');
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    }
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (file) processFile(file);
+    }
+
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const workbook = XLSX.read(e.target.result, { type: 'binary' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet);
+          if (rows.length === 0) { showToast('error', 'File is empty.'); return; }
+          bulkResults = rows.map(row => {
+            const data = {
+              name: row.student_name || row.name || 'Unknown',
+              sid: String(row.student_id || row.id || ''),
+              cr1: row.completion_rate_1 ?? 0.8,
+              cr2: row.completion_rate_2 ?? 0.8,
+              ap1: row.approved_1sem ?? 5,
+              ap2: row.approved_2sem ?? 5,
+              g1: row.grade_1sem ?? 13,
+              g2: row.grade_2sem ?? 13,
+              tuition: String(row.tuition_fees ?? 1),
+              finrisk: String(row.financial_risk ?? 0),
+              scholarship: String(row.scholarship ?? 0),
+              debt: String(row.debt ?? 0),
+              attendance: String(row.attendance ?? 3),
+              study: String(row.study_hrs ?? 3),
+              exam: String(row.exam ?? 2),
+              employed: String(row.employed ?? 0),
+              childcare: String(row.childcare ?? 0),
+              displaced: String(row.displaced ?? 0),
+              age: row.age ?? 20,
+              timestamp: new Date().toISOString()
+            };
+            const result = calculateRiskScore(data);
+            return { ...data, ...result };
+          });
+          renderBulkResults();
+          showToast('success', `Processed ${bulkResults.length} students!`);
+        } catch (err) {
+          showToast('error', 'Failed to parse file. Please check format.');
+          console.error(err);
+        }
+      };
+      reader.readAsBinaryString(file);
+    }
+
+    let sortKey = 'score';
+    let sortDir = -1;
+
+    function sortTable(key) {
+      if (sortKey === key) sortDir *= -1;
+      else { sortKey = key; sortDir = -1; }
+      bulkResults.sort((a, b) => {
+        const va = key === 'score' ? a.score : (a[key] || '').toString().toLowerCase();
+        const vb = key === 'score' ? b.score : (b[key] || '').toString().toLowerCase();
+        return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+      });
+      renderBulkTable();
+    }
+
+    function renderBulkResults() {
+      const high = bulkResults.filter(r => r.riskLevel === 'High').length;
+      const low = bulkResults.filter(r => r.riskLevel === 'Low').length;
+      document.getElementById('bulk-total').textContent = bulkResults.length;
+      document.getElementById('bulk-risk').textContent = high;
+      document.getElementById('bulk-safe').textContent = low;
+      document.getElementById('bulk-results').style.display = 'block';
+      renderBulkTable();
+    }
+
+    function renderBulkTable() {
+      const riskColors = { High: '#ef4444', Medium: '#f59e0b', Low: '#10b981' };
+      const attMap = { '1': '<60%', '2': '60-74%', '3': '75-90%', '4': '>90%' };
+      const studyMap = { '1': '<5 hrs', '2': '5-10 hrs', '3': '10-20 hrs', '4': '>30 hrs' };
+      const tbody = document.getElementById('bulk-tbody');
+      tbody.innerHTML = bulkResults.map(r => {
+        const primaryFactor = r.factors[0]?.name || 'None';
+        const tuitionText = r.tuition === '1' ? '<span style="color:var(--success)">&#10003; Paid</span>' : '<span style="color:var(--danger)">&#10007; Unpaid</span>';
+        const finRiskText = r.finrisk === '1' ? '<span style="color:var(--danger)">Yes</span>' : '<span style="color:var(--success)">No</span>';
+        return `
+      <tr>
+        <td style="font-weight:600;">${r.name}</td>
+        <td>${r.sid}</td>
+        <td style="color:var(--text-muted);">${r.age}</td>
+        <td>${parseFloat(r.cr1).toFixed(2)}</td>
+        <td>${parseFloat(r.cr2).toFixed(2)}</td>
+        <td>${parseFloat(r.g1).toFixed(1)}</td>
+        <td>${parseFloat(r.g2).toFixed(1)}</td>
+        <td>${r.ap1}</td>
+        <td>${r.ap2}</td>
+        <td>${tuitionText}</td>
+        <td>${finRiskText}</td>
+        <td style="color:var(--text-muted); font-size:11px;">${attMap[r.attendance] || r.attendance}</td>
+        <td style="color:var(--text-muted); font-size:11px;">${studyMap[r.study] || r.study}</td>
+        <td>
+          <div class="flex items-center gap-2">
+            <div class="progress-bar-wrap" style="width:70px; margin:0">
+              <div class="progress-bar-fill" style="width:${r.score}%; background:${riskColors[r.riskLevel]}"></div>
+            </div>
+            <span style="font-weight:700; color:${riskColors[r.riskLevel]}">${r.score}%</span>
+          </div>
+        </td>
+        <td>
+          <span class="risk-badge ${r.riskLevel === 'High' ? 'risk-high' : r.riskLevel === 'Medium' ? 'risk-medium' : 'risk-low'}"
+                style="font-size:10px;">
+            ${r.riskLevel}
+          </span>
+        </td>
+        <td style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+                   font-size:11px; color:var(--text-muted);" title="${primaryFactor}">
+          ${primaryFactor}
+        </td>
+      </tr>
+    `;
+      }).join('');
+    }
+
+    function exportBulkExcel() {
+      if (bulkResults.length === 0) { showToast('error', 'No results to export.'); return; }
+      const data = bulkResults.map(r => ({
+        'Student Name': r.name,
+        'Student ID': r.sid,
+        'Risk Score %': r.score,
+        'Risk Level': r.riskLevel,
+        'Age': r.age,
+        'Completion Rate Sem1': r.cr1,
+        'Completion Rate Sem2': r.cr2,
+        'Grade Sem1': r.g1,
+        'Grade Sem2': r.g2,
+        'Financial Risk': r.finrisk === '1' ? 'Yes' : 'No',
+        'Tuition Up to Date': r.tuition === '1' ? 'Yes' : 'No',
+        'Risk Factors': r.factors.map(f => f.name).join('; '),
+        'Assessment Date': new Date(r.timestamp).toLocaleString()
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Risk Assessment');
+      XLSX.writeFile(wb, `Retenza_Bulk_Results_${new Date().toISOString().split('T')[0]}.xlsx`);
+      showToast('success', 'Excel file downloaded!');
+    }
+
+    function downloadSampleCSV() {
+      const csv = `student_name,student_id,completion_rate_1,completion_rate_2,grade_1sem,grade_2sem,approved_1sem,approved_2sem,tuition_fees,financial_risk,attendance,study_hrs,age
+John Doe,2025001,0.85,0.70,14.5,12.0,5,4,1,0,3,3,19
+Jane Smith,2025002,0.40,0.30,9.5,8.0,2,2,0,1,2,1,22
+Alex Johnson,2025003,0.95,0.90,17.0,16.5,6,6,1,0,4,4,21
+Maria Garcia,2025004,0.55,0.45,11.0,9.0,3,3,0,1,2,2,25
+Chris Lee,2025005,0.75,0.80,13.5,14.0,5,5,1,0,3,3,20`;
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'Retenza_Sample.csv';
+      a.click(); URL.revokeObjectURL(url);
+      showToast('success', 'Sample CSV downloaded!');
+    }
+
+    // ================================================================
+    // FORM HELPERS
+    // ================================================================
+    function clearForm() {
+      ['f-name', 'f-sid'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-age').value = 20;
+      document.getElementById('f-cr1').value = 0.85;
+      document.getElementById('f-cr2').value = 0.80;
+      document.getElementById('f-ap1').value = 5;
+      document.getElementById('f-ap2').value = 5;
+      document.getElementById('f-g1').value = 14.5;
+      document.getElementById('f-g2').value = 13.0;
+      document.getElementById('result-container').style.display = 'none';
+    }
+
+    function fillSampleData() {
+      const samples = [
+        { name: 'Riya Sharma', sid: '2025101', age: 19, cr1: 0.35, cr2: 0.28, ap1: 2, ap2: 1, g1: 8.5, g2: 6.0, tuition: '0', finrisk: '1', scholarship: '0', debt: '1', attendance: '1', study: '1', exam: '1', employed: '1', childcare: '0', displaced: '0' },
+        { name: 'David Chen', sid: '2025102', age: 21, cr1: 0.90, cr2: 0.88, ap1: 6, ap2: 6, g1: 16.0, g2: 15.5, tuition: '1', finrisk: '0', scholarship: '1', debt: '0', attendance: '4', study: '4', exam: '3', employed: '0', childcare: '0', displaced: '0' },
+        { name: 'Sara Patel', sid: '2025103', age: 23, cr1: 0.62, cr2: 0.55, ap1: 4, ap2: 3, g1: 12.0, g2: 10.5, tuition: '0', finrisk: '0', scholarship: '0', debt: '0', attendance: '2', study: '2', exam: '2', employed: '1', childcare: '1', displaced: '0' },
+      ];
+      const s = samples[Math.floor(Math.random() * samples.length)];
+      document.getElementById('f-name').value = s.name;
+      document.getElementById('f-sid').value = s.sid;
+      document.getElementById('f-age').value = s.age;
+      document.getElementById('f-cr1').value = s.cr1;
+      document.getElementById('f-cr2').value = s.cr2;
+      document.getElementById('f-ap1').value = s.ap1;
+      document.getElementById('f-ap2').value = s.ap2;
+      document.getElementById('f-g1').value = s.g1;
+      document.getElementById('f-g2').value = s.g2;
+      document.getElementById('f-tuition').value = s.tuition;
+      document.getElementById('f-finrisk').value = s.finrisk;
+      document.getElementById('f-scholarship').value = s.scholarship;
+      document.getElementById('f-debt').value = s.debt;
+      document.getElementById('f-attendance').value = s.attendance;
+      document.getElementById('f-study').value = s.study;
+      document.getElementById('f-exam').value = s.exam;
+      document.getElementById('f-employed').value = s.employed;
+      document.getElementById('f-childcare').value = s.childcare;
+      document.getElementById('f-displaced').value = s.displaced;
+      showToast('info', `Sample data loaded: ${s.name}`);
+    }
+
+    // ================================================================
+    // TOAST
+    // ================================================================
+    function showToast(type, message) {
+      const toast = document.getElementById('toast');
+      const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+      const el = document.createElement('div');
+      el.className = `toast-msg ${type}`;
+      el.innerHTML = `<i class="fa ${icons[type] || 'fa-circle-info'}"></i> ${message}`;
+      toast.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(40px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 3000);
+    }
+
+    // ================================================================
+    // INIT
+    // ================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      updateHistoryBadge();
+      renderDashboardCharts();
+
+      // ── Field info tooltips ──────────────────────────────────────────
+      const FIELD_TIPS = {
+        // Phase 1 — Identity
+        'f-acyear': 'Select the year you are currently studying in. For example, if you just joined, choose 1st Year. If you have completed 1 year, choose 2nd Year.',
+        'f-course': 'Select your course from the dropdown list. Choosing the correct course will automatically set the available year options for you.',
+        'f-section': 'Enter your section or division as told by your institute. For example: A, B, C, or Section 1.',
+        // Phase 2 — SGPA / CGPA
+        'f-sgpa1': 'SGPA is your grade score for Semester 1 only, on a scale of 1 to 10. You will find this on your Semester 1 marksheet. 5.0 is usually the passing mark.',
+        'f-sgpa2': 'SGPA for Semester 2 on a 1 to 10 scale. Leave blank if results are not yet announced.',
+        'f-cgpa1': 'CGPA is your overall grade average across your full 1st year (both semesters together). Usually mentioned on your annual marksheet or result card.',
+        'f-sgpa3': 'Your grade score for Semester 3 on a 1 to 10 scale. Found on your Semester 3 result.',
+        'f-sgpa4': 'Your grade score for Semester 4 on a 1 to 10 scale. Found on your Semester 4 result.',
+        'f-cgpa1y3': 'Your overall CGPA at the end of your 1st year. Found on your 1st year annual result card.',
+        'f-cgpa2': 'Your overall CGPA at the end of your 2nd year. Found on your 2nd year annual result card.',
+        'f-sgpa5': 'Your grade score for Semester 5 on a 1 to 10 scale.',
+        'f-sgpa6': 'Your grade score for Semester 6 on a 1 to 10 scale.',
+        'f-cgpa1y4': 'Your overall CGPA at the end of your 1st year.',
+        'f-cgpa2y4': 'Your overall CGPA at the end of your 2nd year.',
+        'f-cgpa3': 'Your overall CGPA at the end of your 3rd year. Found on your 3rd year annual result.',
+        'f-sgpa7': 'Your grade score for Semester 7 on a 1 to 10 scale.',
+        'f-sgpa8': 'Your grade score for Semester 8 on a 1 to 10 scale.',
+        // Phase 3 — Backlog
+        'f-total-subjects': 'Enter the total number of subjects or papers you were enrolled in this academic year. For example, if you had 8 subjects, enter 8.',
+        'f-passed-all': 'Select Yes if you passed all your subjects in the last exam. Select No if you failed or got a re-appear or back in any subject.',
+        'f-backlogs': 'Enter how many subjects you failed or could not clear in the last examination. For example, if you failed 2 out of 8 subjects, enter 2.',
+        // Phase 4 — Student Info
+        'f-name': 'Enter your full name exactly as it appears on your college ID card or admission form.',
+        'f-sid': 'Enter your unique student enrollment number or roll number given to you by your institute.',
+        'f-age': 'Enter your current age in years. For example, if you are 19 years old, enter 19.',
+        // Academic Performance
+        'f-midterm-obtained': 'Add up the marks you scored in mid-term exams across ALL subjects and enter the total here. E.g. if you scored 18+22+15 in 3 subjects, enter 55.',
+        'f-midterm-total': 'Enter the maximum marks possible across all mid-term exams combined. E.g. if each of 3 subjects has 30 max marks, enter 90. We will calculate the percentage for you.',
+        'f-exam-appeared': 'Did you actually sit and write your last semester final examination? Select No if you were absent, detained due to low attendance, or did not appear for any reason.',
+        'f-assignment': 'How regularly do you complete and submit your assignments, projects, and practical records on time? Choose the option that honestly describes your habit.',
+        // Extracurricular
+        'f-extracurricular': 'Do you take part in any college clubs, cultural fests, technical competitions, NSS, volunteering, or any activity outside of regular classes?',
+        'f-sports': 'Are you actively part of any sports team or do you regularly play a sport at the college, inter-college, or state level?',
+        'f-mentor': 'How often do you talk to your class teacher, subject teacher, or assigned faculty mentor for academic help, guidance, or to discuss any issues?',
+        // Financial
+        'f-tuition': 'Are your college tuition and semester fees fully paid and up to date? Select No if any fee payment is pending or overdue.',
+        'f-finrisk': 'Is there any serious financial problem at home — such as job loss, medical emergency, or a major money crisis — that is affecting your ability to study?',
+        'f-scholarship': 'Are you currently receiving any scholarship, government aid, fee waiver, or financial assistance from any source?',
+        'f-debt': 'Do you or your family have any outstanding education loan or unpaid fee balance that has not been settled yet?',
+        // Engagement
+        'f-attendance': 'On average, what percentage of your classes do you attend? Excellent means you are present for more than 90% of all lectures and practicals.',
+        'f-study': 'Apart from college hours, how many hours per week do you spend studying on your own, doing homework, or in self-study?',
+        'f-exam': 'How thoroughly do you prepare before your semester exams? High means you plan ahead and study systematically. Low means you barely prepare.',
+        // Personal
+        'f-employed': 'Do you do any paid job alongside your studies — whether part-time, full-time, or freelance? This includes work from home jobs too.',
+        'f-childcare': 'Are you responsible for taking care of a young child or a dependent sibling at home, which takes up a significant part of your time?',
+        'f-displaced': 'Are you a displaced person or someone who had to relocate urgently from your home due to any disaster, conflict, or difficult circumstance?',
+      };
+
+      function injectTooltips() {
+        document.querySelectorAll('.form-group').forEach(group => {
+          const input = group.querySelector('input, select');
+          if (!input || !input.id) return;
+          const tipText = FIELD_TIPS[input.id];
+          if (!tipText) return;
+          const label = group.querySelector('label');
+          if (!label || label.querySelector('.info-tip')) return;
+          const tipEl = document.createElement('span');
+          tipEl.className = 'info-tip';
+          tipEl.innerHTML = `<i class="fa fa-circle-info" style="font-size:8px;"></i><span class="tip-text">${tipText}</span>`;
+          label.appendChild(tipEl);
+        });
+      }
+      injectTooltips();
+
+      // Close sidebar on outside click (mobile)
+      document.addEventListener('click', e => {
+        const sidebar = document.getElementById('sidebar');
+        const hamburger = document.getElementById('hamburger');
+        if (window.innerWidth <= 900 && !sidebar.contains(e.target) && !hamburger.contains(e.target)) {
+          closeSidebar();
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
